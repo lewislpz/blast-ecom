@@ -1,0 +1,28 @@
+.landing-page {
+  width: min(100% - 2rem, 48rem);
+  margin: 0 auto;
+  padding: clamp(4rem, 15vh, 9rem) 0;
+}
+
+.landing-page h1 {
+  max-width: 14ch;
+  margin: 0.5rem 0 1rem;
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  line-height: 1.05;
+}
+
+.landing-page p:last-child {
+  max-width: 58ch;
+  color: #4a5662;
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #135e4a;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}

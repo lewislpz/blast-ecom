@@ -1,25 +1,56 @@
-# Local Development Design
+# Local Development
 
-Status: Planned, not runnable. No Compose file, Dockerfile, env file or application exists.
+Status: The Django/React skeleton and dependency locks exist. The complete local stack is not yet runnable because PostgreSQL/Compose setup has not been added. The current backend migration has not been applied to a database.
 
-## Selected Arrangement
+## Runtime
 
-Native Django and Vite development processes, PostgreSQL in Docker Compose with a local named volume. A Django maintenance command in a separate terminal/process handles expiry, simulated notification delivery and expired idempotency/session cleanup. It uses the same application and database, not an independently owned service.
+- Python 3.13.15, with `uv` available on `PATH`.
+- Node.js 24.21.0 and npm 11.19.0 (`frontend/.nvmrc`).
+- PostgreSQL 17 will be provided by the planned local Compose configuration. Docker/Compose is not currently installed in the implementation environment.
 
-Vite proxies /api, /admin and Django admin /static assets to Django. Browser sees a single origin; local plain HTTP cookie exceptions are confined to local settings. Hosted development uses HTTPS and Secure cookies.
+Exact locked application packages and verification status are in [tooling.md](tooling.md).
 
-Do not automatically run migrations from every process start. The future setup sequence is: resolve locked dependencies, start PostgreSQL, explicitly apply migrations, seed fictional data, start backend/frontend and maintenance. There is no claim that docker compose up alone currently launches the application.
+## Configuration and Secrets
 
-## Configuration Contract
+Copy `.env.example` to a local `.env`, replace `DJANGO_SECRET_KEY` with a private random value of at least 50 characters, and keep `.env` untracked. For example, generate a value with `python -c 'import secrets; print(secrets.token_urlsafe(50))'`. The current settings require the key explicitly and default database connection details to the local development database. The example file contains no real credential.
 
-Backend required: secret key, database connection and explicit environment. Separate validated settings for allowed hosts, trusted origins, reservation duration (15 minutes default), maintenance interval (60 seconds), session expiries, reset expiry and simulator mode. Reject unsupported simulator mode outside local/test until a deployment is explicitly designed.
+The application settings read process environment variables; they do not parse `.env` themselves. In a shell, export the file's values explicitly (`set -a; source .env; set +a`) before running backend commands.
 
-Local .env ignored by Git; .env.example placeholders only. Never commit credentials. Frontend uses relative API URLs; VITE_ settings are public and contain no secrets. No hard-coded admin password; create staff credentials interactively later.
+## Current Scaffold Checks
 
-## Seed and Data Safety
+From `backend/`:
 
-Use deterministic fictional categories/products/customers and explicit test-only accounts. Seed commands must be idempotent, local-only and non-destructive by default. No real personal data. Compose volume deletion or database reset requires explicit target/approval; no startup reset.
+```bash
+uv sync --locked
+DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" uv run python manage.py check
+DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" uv run python manage.py makemigrations --check --dry-run
+uv run ruff check .
+uv run ruff format --check .
+DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" uv run mypy modules
+DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" uv run pytest
+```
 
-## Recovery and Limits
+From `frontend/`:
 
-PostgreSQL unavailable: readiness fails and mutations return safe temporary errors. Stop maintenance: reservations remain conservatively reserved until restart or an expired-order command; backlog must be visible. Local named volumes are persistence, not backups. Application container packaging and hosted operations wait for a working slice.
+```bash
+npm ci
+npm run typecheck
+npm test
+npm run lint
+npm run format:check
+npm run build
+```
+
+The Python checks and React placeholder test/build have run successfully. Django's migration consistency check currently warns that it cannot connect to `localhost:5432`; it reports no model/migration drift, but that warning means the database history check has not run.
+
+## Planned Full Local Flow
+
+Once the database increment is available: start PostgreSQL, apply migrations explicitly, load fictional seed data, then run Django, Vite and the maintenance command as separate host processes. Vite proxies `/api`, `/admin` and `/static` to Django so the browser uses one origin. Do not have application startup apply migrations or reset the database.
+
+## Data and Safety
+
+Seed commands must be idempotent, local-only and non-destructive. Never use real customer data. A named Compose volume is persistence, not a backup. Deleting a volume or resetting data requires an explicit target and approval; no reset-on-start behavior is allowed.
+
+## Future Operational Boundaries
+
+PostgreSQL unavailable: readiness should fail and mutations should return a safe temporary error. If maintenance is stopped, reservations remain conservatively reserved until the process restarts or expiry maintenance runs. Application containers and hosted operations are outside the current local scaffold.

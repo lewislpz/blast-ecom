@@ -1,34 +1,34 @@
 # Application Structure
 
-Status: Accepted design; directories below are planned, not present. [ADR-0015](../decisions/ADR-0015-data-model-conventions.md).
+Status: The repository and initial runtime skeleton are implemented. Only the custom Users model/migration and a non-functional React landing placeholder exist; the remaining domain modules and behavior below are planned. [ADR-0003](../decisions/ADR-0003-repository-strategy.md), [ADR-0015](../decisions/ADR-0015-data-model-conventions.md), [ADR-0018](../decisions/ADR-0018-frontend-conventions.md).
 
 ```text
 backend/
   pyproject.toml
   uv.lock
-  config/                 Django settings, root URLs, runtime entry points
+  manage.py
+  config/                 Settings and Django entry points
   modules/
-    users/
-    products/
-    inventory/
-    orders/
-    payments/
-    notifications/
-  common/                 minimal request/error/idempotency infrastructure
-  tests/
+    users/                Custom AbstractUser and initial migration (implemented)
+    products/             Planned
+    inventory/            Planned
+    orders/               Planned
+    payments/             Planned simulator module
+    notifications/        Planned local durable intent
+  common/                 Planned minimal request/error/idempotency infrastructure
+  tests/                  Shared backend test support (planned)
 frontend/
   package.json
   package-lock.json
   src/
-    app/                  routing, providers, application shell
-    features/             catalog, account, cart, checkout, orders
-    shared/               fetch adapter, generated API types, basic UI
+    App.tsx                Current scaffold-only placeholder
+    app/                  Planned routing/providers/application shell
+    features/             Planned catalog, account, cart, checkout, orders
+    shared/               Planned fetch adapter and generated API types
 ```
 
-Each Django app has an unambiguous label matching its domain and only files it needs. Models/constraints describe persistence; services expose business commands; selectors expose reads; serializers validate/shape HTTP data; views handle HTTP/auth and call services. Admin actions call those same services.
+Each future Django module has an unambiguous app label and owns its writes. Models and constraints represent persistence; services expose commands; selectors expose reads; serializers validate/shape HTTP; views handle transport/auth and call domain operations. Admin actions use those same operations.
 
-Orders coordinates checkout/payment/cancellation in the application layer, calling Inventory and Payments operations. It does not update their tables directly. Products exposes catalog snapshots; Users supplies identity references; Notifications owns delivery records. Avoid reverse service imports into Orders: supply order UUID/reference and required values to subordinate operations. The coordinator owns the transaction; module operations participate rather than committing independently.
+Orders will coordinate checkout/payment/cancellation in the application layer, calling Inventory and Payments operations rather than updating their tables directly. The coordinator owns the atomic transaction; module operations participate without committing independently. Cross-module reads use explicit selectors and accepted foreign keys only.
 
-Cross-module reads use explicit selectors. Accepted foreign keys are listed in data architecture. Do not add generic repositories, one class per operation, internal HTTP or an event bus merely to emulate future services.
-
-Django framework tables are technical data. Idempotency/request infrastructure in common is shared technical code, not a seventh business domain. No frontend dependency on ORM models; generated OpenAPI types are the HTTP boundary.
+Do not add generic repositories, one class per operation, internal HTTP, event bus, broker or cache merely to mimic future microservices. Django framework tables are technical data; request/idempotency infrastructure is shared technical code rather than another business domain. The frontend depends on generated OpenAPI types, never ORM models.

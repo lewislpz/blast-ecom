@@ -1,47 +1,53 @@
 # Tooling and Compatibility Baseline
 
-Status: Accepted choices; no packages installed, manifests or lockfiles generated. [ADR-0019](../decisions/ADR-0019-tooling-and-local-development.md).
+Status: The first scaffold and dependency locks are implemented and verified on macOS arm64. PostgreSQL runtime compatibility is not yet verified because no PostgreSQL server is available in the development environment. [ADR-0019](../decisions/ADR-0019-tooling-and-local-development.md) remains the selected baseline.
 
-## Runtime Lines
+## Resolved Runtime and Package Versions
 
-| Component | Baseline | Reason |
-|---|---|---|
-| Python | 3.13, supported patch at implementation | Compatible with selected Django/DRF lines |
-| Django | 5.2 LTS, latest supported patched release within line | Stability/support window instead of newest feature release |
-| DRF | 3.16, supported patched release | Documented Django 5.2/Python 3.13 compatibility |
-| PostgreSQL | 17, supported patched release | Supported relational baseline; no feature requires a newer major |
-| Node.js | 24 LTS, patched release | Frontend tool runtime |
-| React | 19 | Current major baseline; compatible tool resolution required |
-| Vite / TypeScript | Supported stable releases compatible with above | Exact versions depend on scaffold-time resolution |
+| Component | Resolved version | Verification status |
+|---|---:|---|
+| Python | 3.13.15 | Backend environment created and used for checks |
+| Django | 5.2.17 | Resolved in `backend/uv.lock`; system check passed |
+| Django REST framework | 3.16.1 | Resolved in `backend/uv.lock`; installed, no API behavior yet |
+| psycopg | 3.3.6 | Resolved in `backend/uv.lock`; server connection not verified |
+| PostgreSQL | 17 (major line) | Not installed/launched; patch image remains for Compose increment |
+| Node.js | 24.21.0 | Official macOS arm64 archive checksum verified; used for frontend checks |
+| npm | 11.19.0 | Shipped with Node 24.21.0; `npm ci` passed |
+| React / React DOM | 19.3.0 | Locked in `frontend/package-lock.json` |
+| Vite | 8.3.1 | Locked; production build passed |
+| TypeScript | 6.0.3 | Locked; type check passed |
+| Vitest | 5.0.2 | Locked; component smoke test passed |
 
-This is not a verified lock set. Resolve full versions, inspect package engine/peer requirements, generate lockfiles and run startup/build/tests before reporting compatibility achieved. If a selected line loses support or conflicts with a necessary dependency, document the change before adoption. No prereleases or bare latest image tags.
+Django 5.2.18 was not available from the package index when the lock was generated; the compatible 5.2 LTS patch 5.2.17 was selected rather than relaxing the accepted Django line. The selected DRF 3.16 minor resolves to 3.16.1. These are package resolution facts, not a claim that a newer minor would be incompatible.
+
+The generated lockfiles pin transitive artifacts. `uv` 0.12.19 and Node/npm were provisioned in a temporary tool directory for this implementation session, not installed globally or committed. Developers should use their normal trusted runtime manager and the exact project runtime files.
 
 ## Dependency and Quality Tools
 
-| Tool | Responsibility |
-|---|---|
-| uv + uv.lock | Python environments/dependency locking; future verification uses locked resolution |
-| npm + package-lock.json | One frontend project; future reproducible installs use npm ci |
-| psycopg 3 | PostgreSQL driver for Django |
-| drf-spectacular | OpenAPI generation |
-| openapi-typescript | Frontend contract types |
-| Ruff | Python lint and formatting |
-| mypy + django-stubs | Backend type checks; strict application boundaries, explicit exceptions for framework-generated surfaces |
-| TypeScript strict + ESLint + Prettier | Frontend typing, correctness lint and formatting |
-| pytest + pytest-django | Backend unit/integration/API tests |
-| Vitest + React Testing Library | UI/component behavior |
-| Playwright | Few complete browser journeys |
+| Tool | Responsibility | Status |
+|---|---|---|
+| uv + `backend/uv.lock` | Python environment and dependency locking | Implemented; `uv sync --locked` resolved |
+| npm + `frontend/package-lock.json` | Reproducible frontend install | Implemented; `npm ci` passed |
+| psycopg 3 | PostgreSQL driver | Installed in lock; connection pending database setup |
+| Ruff | Python lint and formatting | Implemented; checks passed |
+| mypy + django-stubs | Backend type checks | Implemented; strict check passed |
+| pytest + pytest-django | Backend unit/integration/API tests | Implemented; two pure unit cases passed |
+| TypeScript strict + ESLint + Prettier | Frontend typing, lint and formatting | Implemented; checks passed |
+| Vitest + React Testing Library | UI/component behavior | Implemented; one placeholder render test passed |
+| drf-spectacular + openapi-typescript | API schema and generated client types | Planned for API increment; not installed yet |
+| Playwright | End-to-end browser journeys | Planned for later slice; not installed yet |
 
-Only add a tool when its implementation slice uses it. No generic shared package, Nx/Turborepo, Redux or dual formatter stack for Python.
+Only add a tool when its implementation slice uses it. No generic shared package, Nx/Turborepo, Redux, Redis, RabbitMQ or application container is introduced here.
 
 ## Git and Review Policy
 
-GitHub Flow as future convention: main, short-lived changes, Conventional Commits, squash merge. Every significant change includes tests/doc updates and ADR changes if required. A second review is required for high-risk changes under repository rules; ordinary solo work uses an explicit self-review, not a fabricated approval. Required CI statuses/branch protection configured only once checks and repository exist.
+GitHub Flow remains the accepted future convention: `main`, short-lived changes, Conventional Commits and squash merge. The owner has initialized the repository; this implementation has not created a branch or commit. High-risk changes require independent review and explicit approval under the repository gates.
 
-No Git repository was initialized and no commit/push occurred in Phase 0.
+## Official Sources
 
-## Sources
+- [Django supported versions](https://www.djangoproject.com/download/) and [Python compatibility for Django 5.2](https://docs.djangoproject.com/en/5.2/faq/install/).
+- [Django REST framework 3.16 compatibility](https://www.django-rest-framework.org/community/3.16-announcement/).
+- [Node.js release schedule](https://nodejs.org/en/about/previous-releases) and [v24.21.0 archive](https://nodejs.org/dist/v24.21.0/).
+- [Vite requirements](https://vite.dev/guide/) and [uv lock/sync behavior](https://docs.astral.sh/uv/concepts/projects/sync/).
 
-[Django support](https://www.djangoproject.com/download/), [Python compatibility](https://docs.djangoproject.com/en/5.2/faq/install/), [DRF 3.16](https://www.django-rest-framework.org/community/3.16-announcement/), [Node releases](https://nodejs.org/en/about/previous-releases), [PostgreSQL support](https://www.postgresql.org/support/versioning/), [uv lock behavior](https://docs.astral.sh/uv/concepts/projects/sync/).
-
-Tool references: [Ruff](https://docs.astral.sh/ruff/), [django-stubs](https://github.com/typeddjango/django-stubs), [openapi-typescript](https://openapi-ts.dev/introduction), [psycopg](https://www.psycopg.org/psycopg3/docs/), [TypeScript strict](https://www.typescriptlang.org/tsconfig/strict.html), [Compose](https://docs.docker.com/compose/).
+Additional tool references: [Ruff](https://docs.astral.sh/ruff/), [django-stubs](https://github.com/typeddjango/django-stubs), [openapi-typescript](https://openapi-ts.dev/introduction), [psycopg](https://www.psycopg.org/psycopg3/docs/), [TypeScript strict](https://www.typescriptlang.org/tsconfig/strict.html), [Compose](https://docs.docker.com/compose/).

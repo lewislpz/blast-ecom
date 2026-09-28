@@ -1,6 +1,6 @@
 # First Implementation Slice
 
-Status: Accepted target and acceptance criteria, not an approved code-execution plan. Phase 0 remains active until the owner requests implementation and a bounded plan is prepared.
+Status: Accepted target and acceptance criteria. The bounded implementation plan is approved and task task-1 is in progress; this specification alone is not verification evidence.
 
 ## Outcome
 

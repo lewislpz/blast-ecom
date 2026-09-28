@@ -1,0 +1,46 @@
+[project]
+name = "blast-ecom-backend"
+version = "0.1.0"
+description = "Blast Ecom modular monolith backend"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "Django>=5.2.17,<5.3",
+    "djangorestframework>=3.16,<3.17",
+    "psycopg[binary]>=3.2,<4",
+]
+
+[dependency-groups]
+dev = [
+    "django-stubs[compatible-mypy]>=5.2,<6",
+    "mypy>=1.15,<2",
+    "pytest>=8.3,<9",
+    "pytest-django>=4.11,<5",
+    "ruff>=0.11,<1",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "*_tests.py"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["modules"]
+extend-exclude = ["**/migrations/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main"]
+strict = true
+warn_unused_ignores = true
+exclude = ["migrations/"]
+
+[tool.django-stubs]
+django_settings_module = "config.settings"
+
+[tool.uv]
+package = false

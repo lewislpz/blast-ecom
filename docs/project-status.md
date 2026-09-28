@@ -4,11 +4,11 @@ Updated: 2026-09-28
 
 ## Current Phase
 
-Phase 0 — Product Definition & Architecture. Initial local implementation baseline is documented; no application implementation has started.
+Phase 1 — Core Domain & Application Foundation. The first implementation increment is in progress; its PostgreSQL migration/connectivity acceptance remains unverified.
 
 ## Current Objective
 
-Hand off a cohesive local simulated purchase specification and prepare bounded implementation work when requested.
+Complete the runtime scaffold against the selected PostgreSQL baseline, then implement catalog and inventory invariants as the next bounded increment.
 
 ## Completed
 
@@ -17,18 +17,22 @@ Hand off a cohesive local simulated purchase specification and prepare bounded i
 - Product lifecycle, data model/locks, account/admin policy, API/idempotency, frontend, tooling, local runtime, testing, migrations and observability specifications.
 - Initial threat model, acceptance matrix, decision register and decision report.
 - Twenty-one Accepted ADRs total. Original twelve preserved unchanged.
+- Backend and frontend dependency locks, checks and starter scaffolds.
+- Custom UUID-keyed Django user model with normalized unique email and generated initial migration.
+- Backend Django check, migration drift check (without database-history verification), Ruff, mypy and three pure unit cases passed.
+- Frontend `npm ci`, type check, lint, formatting check, one smoke test and production build passed.
 
-These are design/documentation outcomes. No application capability is Implemented.
+The purchase journey, API, authentication flows, catalog, inventory, PostgreSQL runtime and deployment remain unimplemented.
 
 ## In Progress
 
-Decision round complete: documentation consistency checks passed and the first-slice baseline is ready for handoff. Application implementation has not been requested in this round.
+Task task-1 — scaffold and runtime compatibility: code and lockfiles are present. Waiting for an available PostgreSQL 17 service to apply the initial migration and verify the connection before marking the task complete.
 
 ## Pending Decisions
 
 See the [decision register](roadmap/decision-register.md) for complete trigger-based deferrals.
 
-- Implementation details: exact locked patches/tool versions, concrete model field lengths, generated schema/client, local configuration and empirical query plans.
+- Implementation details: concrete model field lengths, generated schema/client, local configuration and empirical query plans.
 - Before public accounts: real email verification/reset, shared abuse controls, staff MFA/access restrictions and privacy retention.
 - Before real sales: markets/jurisdiction, taxes/invoicing, actual shipping charges/coverage and fulfillment.
 - Before hosted operations: environments/provider/budget, secrets/TLS/networking, backup/restore, RPO/RTO, SLOs and actionable monitoring.
@@ -38,11 +42,11 @@ These are deliberately deferred; Redis/RabbitMQ or Kubernetes are not required n
 
 ## Blockers
 
-No unresolved architecture choice blocks preparing the local simulated first-slice implementation plan. Exact dependency compatibility and behavioral correctness must be verified during implementation. Public/real-data use remains blocked by launch gates above.
+The local implementation environment has no Docker/Compose or PostgreSQL server. Do not begin PostgreSQL-dependent catalog/inventory integration work until task-1's live database check passes. Public/real-data use remains blocked by launch gates above.
 
 ## Known Issues
 
-No Git repository, application, lockfiles, runnable app tests, database or deployment exists. Historical ADRs describe pending topics at their creation; active specs and later ADRs refine them.
+Git is initialized on `main` and tracks `origin/main`; no commit has been made for the implementation in progress. Django/React source and lockfiles now exist. PostgreSQL, Compose, purchase behavior, runtime database tests and deployment do not.
 
 ## Technical Debt
 
@@ -63,15 +67,16 @@ No code debt exists. Django coupling, shared storage and local simulation are de
 | R-09 | Migration locks/data loss | Review and clean/upgrade/recovery validation | Open |
 | R-10 | Local auth defaults mistaken for public readiness | Threat model and public-account gates | Open |
 | R-11 | Maintenance delay holds stock | Deadline checks, durable state, backlog visibility | Open |
-| R-12 | Runtime lines mistaken for verified lock set | Resolve exact versions and run compatibility checks | Open |
+| R-12 | Runtime lines mistaken for verified lock set | Exact Python/JS locks and local checks are verified; PostgreSQL runtime check remains pending | Partially resolved |
+| R-13 | No local PostgreSQL/Compose available | Add the selected PostgreSQL-only Compose service and verify initial migration/connectivity before domain persistence work | Open |
 
 ## Next Steps
 
-1. Prepare a small implementation plan based on [first slice](development/first-slice.md) when requested.
-2. Verify runtime/dependency locks and custom-user migration ordering.
-3. Implement domain invariants with real PostgreSQL tests.
-4. Apply high-risk implementation gates to authentication/authorization.
-5. Update docs against actual behavior as increments are completed.
+1. Provide Docker/Compose or a PostgreSQL 17 server for local development.
+2. Apply the custom-user migration and run PostgreSQL-backed scaffold verification.
+3. Implement catalog and inventory invariants with PostgreSQL integration tests.
+4. Implement orders/reservations, API security and the customer UI in approved-plan order.
+5. Apply high-risk threat-model, tests, integration, independent-review and user-approval gates before declaring the slice complete.
 
 ## Latest Report
 

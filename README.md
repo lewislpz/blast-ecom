@@ -1,44 +1,40 @@
 # Blast Ecom
 
-Blast Ecom is a single-seller ecommerce platform for physical goods in EUR, designed around a complete customer purchase and administration journey.
+Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The first release is a local, fictional purchase simulation—not a live store or production service.
 
 ## Current Status
 
-**Phase 0 — Product Definition & Architecture.** Twenty-one Accepted ADRs and an initial implementation specification exist. No application, database, automated application tests or deployment is implemented. The directory is not initialized as a Git repository.
+**Phase 1 — Core Domain & Application Foundation, increment 1 in progress.** Django and React scaffolds, lockfiles, quality checks and the custom UUID user model's initial migration are present. There is no catalog, checkout, PostgreSQL Compose service or functional authentication yet. The migration has not been applied to PostgreSQL.
 
-## Accepted Architecture and Stack
+## Implemented
 
-- Modular monolith, monorepo, six logical areas: Users, Products, Inventory, Orders, Payments and Notifications.
-- Python + Django + Django REST framework; Django ORM and Django migrations.
-- React + TypeScript + Vite for customers; Django admin for internal staff.
-- PostgreSQL: one logical database per environment, shared application schema, module-controlled writes.
-- Registered checkout, Django database sessions, same-origin API and CSRF.
-- UUIDv4 domain IDs, exact EUR decimals and immutable purchase snapshots.
+- Python 3.13 / Django 5.2 / Django REST Framework project skeleton with a custom UUID-keyed user model and normalized unique email.
+- React 19 / TypeScript / Vite scaffold with a Spanish placeholder page.
+- Locked backend and frontend dependencies, lint/type/test/build commands, and one small smoke test per application.
 
-See [ADRs](docs/decisions/README.md), [architecture](docs/architecture/overview.md) and [runtime/tool choices](docs/development/tooling.md). Exact locked versions are not yet resolved.
+## Planned
 
-## Planned First Capabilities
+Registered checkout, catalog and stock management, order reservations, simulated payment, own order history, local PostgreSQL Compose and restartable maintenance. Payments, taxes, shipping, and notifications remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
 
-Browse catalog, create a stock-reserved order, simulate payment, cancel before payment or expire, and view own order history. Staff manage catalog and stock through restricted actions. Payments, shipping and notifications are simulated; real tax/logistics policies remain launch gates.
+## Architecture and Stack
 
-The [purchase workflow](docs/product/purchase-workflow.md) and [first slice](docs/development/first-slice.md) define success and failure behavior. Confirmed does not mean shipped.
+- Modular monolith in a monorepo with six logical domain areas; they are not six deployed services.
+- Django ORM and migrations, DRF APIs, PostgreSQL, and React SPA.
+- Database sessions and same-origin CSRF are selected for the eventual customer flow; they are not implemented yet.
+- UUIDv4 domain IDs, exact EUR decimal values and immutable purchase snapshots are the accepted data conventions.
 
-## Repository and Local Development
+See [ADRs](docs/decisions/README.md), [architecture](docs/architecture/overview.md), [current project status](docs/project-status.md) and [resolved tool versions](docs/development/tooling.md).
 
-Current files: docs/, AGENTS.md, .codex/ and .orchestrator/. Future backend/ and frontend/ layout is documented but not created.
+## Local Checks
 
-The [local development design](docs/development/local-development.md) uses native app processes and Compose PostgreSQL. No application execution/test commands, Dockerfiles, Compose or CI configuration exist yet.
+The [local development guide](docs/development/local-development.md) lists prerequisites and commands. PostgreSQL is not configured locally yet; the full Django workflow is therefore not runnable until the Compose increment is completed.
 
-## Quality, Security and Operations
+## Documentation
 
-[Testing](docs/development/testing-strategy.md), [security baseline](docs/security/overview.md), [threat model](docs/security/threat-model.md), [migration policy](docs/development/migrations.md) and [observability design](docs/operations/observability.md) are planned controls, not runtime guarantees.
+- [Product scope and purchase workflow](docs/product/overview.md)
+- [Architecture and module boundaries](docs/architecture/overview.md)
+- [API standards](docs/api/standards.md)
+- [Testing and security](docs/development/testing-strategy.md), [security baseline](docs/security/overview.md), [threat model](docs/security/threat-model.md)
+- [Roadmap](docs/roadmap/roadmap.md) and [deferred decisions/launch gates](docs/roadmap/decision-register.md)
 
-## Navigation
-
-- [Documentation index](docs/README.md)
-- [Project status](docs/project-status.md)
-- [Decision report](docs/reports/2026-09-28-phase0-decisions.md)
-- [Deferred decisions and launch gates](docs/roadmap/decision-register.md)
-- [Roadmap](docs/roadmap/roadmap.md)
-# blast-ecom
-# blast-ecom
+Capabilities are labeled **Implemented**, **Planned**, **Proposed**, **Under discussion**, or **Deprecated**. Accepted design is not evidence of runtime behavior or production readiness.
