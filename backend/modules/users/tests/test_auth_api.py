@@ -68,6 +68,56 @@ def test_local_vite_origin_can_register_with_bootstrapped_csrf_token() -> None:
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("path", "payload", "authenticated"),
+    [
+        (
+            "/api/v1/auth/register/",
+            {"email": "attacker@example.test", "password": "A-long-safe-password-123"},
+            False,
+        ),
+        (
+            "/api/v1/auth/login/",
+            {"email": "customer@example.test", "password": "A-long-safe-password-123"},
+            False,
+        ),
+        ("/api/v1/auth/logout/", {}, True),
+    ],
+)
+@override_settings(
+    DEBUG=True,
+    CSRF_TRUSTED_ORIGINS=["http://127.0.0.1:5173"],
+)
+def test_auth_unsafe_routes_reject_untrusted_origin_with_valid_token(
+    path: str, payload: dict[str, str], authenticated: bool
+) -> None:
+    client = APIClient(enforce_csrf_checks=True)
+    token = csrf_token(client)
+    user = (
+        User.objects.create_user("customer@example.test", password="A-long-safe-password-123")
+        if authenticated
+        else None
+    )
+    if user is not None:
+        client.force_login(user)
+
+    response = client.post(
+        path,
+        payload,
+        format="json",
+        HTTP_ORIGIN="http://attacker.example",
+        HTTP_X_CSRFTOKEN=token,
+    )
+
+    assert response.status_code == 403
+    assert response["Content-Type"] == "application/problem+json"
+    assert response.json()["code"] == "CSRF_FAILED"
+    assert User.objects.count() == int(authenticated)
+    if authenticated:
+        assert client.get("/api/v1/auth/me/").status_code == 200
+
+
+@pytest.mark.django_db
 @override_settings(DEBUG=False)
 def test_registration_is_disabled_outside_local_debug_mode() -> None:
     client = APIClient(enforce_csrf_checks=True)

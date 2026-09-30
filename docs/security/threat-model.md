@@ -10,7 +10,7 @@ Trust boundaries: browser→HTTP API; browser→admin; application→PostgreSQL;
 |---|---|---|---|
 | Cross-customer object access | Address/order disclosure | Owner-scoped selectors on lists, detail, mutations and replay | PostgreSQL API test confirms another user's UUID cannot list/read/act on order |
 | Price/status/role tampering | Fraud or privilege escalation | Explicit input allowlist; server totals; staff fields read-only | Submit forged totals, roles and nested fields |
-| CSRF including anonymous login | Unwanted actions or login confusion | Explicit Django CSRF checks on unsafe auth/order routes; JSON token bootstrap | Missing token tested for auth and order; invalid token and foreign Origin remain to verify |
+| CSRF including anonymous login | Unwanted actions or login confusion | Explicit Django CSRF checks on unsafe auth/order routes; JSON token bootstrap | Missing/invalid token and untrusted Origin tested across customer registration, login, logout, order creation, payment and cancellation; trusted local Vite Origin has a positive test |
 | Session theft/fixation | Account compromise | HttpOnly/Secure/Lax, login rotation, bounded expiry, logout revocation | Session rotation, expiry and logout tested; password reset does not exist |
 | Password guessing/enumeration | Account takeover | Generic login failures, password validators; shared throttling gate before exposure | Generic failures/logs tested; brute-force control not implemented |
 | Concurrent checkout/replay | Oversell or duplicate charge effects | Row locks, constraints, scoped idempotency | PostgreSQL domain races/replay and API owner isolation/replay tests pass |
@@ -20,4 +20,4 @@ Trust boundaries: browser→HTTP API; browser→admin; application→PostgreSQL;
 | Maintenance crash | Stock held too long, delayed notifications | Deadline checks, durable intents, restartable commands | Kill/restart scenarios and backlog visibility |
 | Destructive migration | Lost history or stock | Expand/contract, review, backup/restore gates | Clean/upgrade tests; recovery test before real data |
 
-Residual gates: invalid-CSRF/foreign-Origin coverage for every unsafe endpoint, email ownership, public auth abuse controls, staff MFA, real data retention/erasure, hosted TLS/secrets, backup restoration and external provider threats. This document does not satisfy independent review or future runtime gates automatically.
+Residual gates: Origin test coverage for Django admin actions and production reverse-proxy/scheme configuration, email ownership, public auth abuse controls, staff MFA, real data retention/erasure, hosted TLS/secrets, backup restoration and external provider threats. This document does not satisfy independent review or future runtime gates automatically.

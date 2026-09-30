@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 from django.http import HttpResponse
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from rest_framework.test import APIClient
 
 from modules.common.middleware import ApiRequestSizeLimitMiddleware
@@ -96,6 +96,78 @@ def test_order_api_requires_session_csrf_and_idempotency_key(shop: tuple[User, P
     assert missing_key["Content-Type"] == "application/problem+json"
     assert missing_key.json()["field_errors"][0]["field"] == "Idempotency-Key"
     assert Order.objects.count() == 0
+
+
+@pytest.mark.django_db
+@override_settings(
+    DEBUG=True,
+    CSRF_TRUSTED_ORIGINS=["http://127.0.0.1:5173"],
+)
+def test_order_creation_rejects_untrusted_origin_with_valid_csrf(
+    shop: tuple[User, Product],
+) -> None:
+    user, product = shop
+    client, token = authenticated_client(user)
+
+    response = client.post(
+        "/api/v1/orders/",
+        order_payload(product),
+        format="json",
+        HTTP_ORIGIN="http://attacker.example",
+        HTTP_X_CSRFTOKEN=token,
+        HTTP_IDEMPOTENCY_KEY=str(uuid4()),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "CSRF_FAILED"
+    assert Order.objects.count() == 0
+    stock = StockItem.objects.get(product=product)
+    assert (stock.on_hand, stock.reserved) == (3, 0)
+
+
+@pytest.mark.django_db
+@override_settings(
+    DEBUG=True,
+    CSRF_TRUSTED_ORIGINS=["http://127.0.0.1:5173"],
+)
+def test_order_actions_reject_untrusted_origin_without_changing_order_or_stock(
+    shop: tuple[User, Product],
+) -> None:
+    user, product = shop
+    client, token = authenticated_client(user)
+    created = client.post(
+        "/api/v1/orders/",
+        order_payload(product),
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+        HTTP_IDEMPOTENCY_KEY=str(uuid4()),
+    )
+    assert created.status_code == 201
+    order_id = created.json()["id"]
+
+    payment = client.post(
+        f"/api/v1/orders/{order_id}/payment/",
+        {},
+        format="json",
+        HTTP_ORIGIN="http://attacker.example",
+        HTTP_X_CSRFTOKEN=token,
+        HTTP_IDEMPOTENCY_KEY=str(uuid4()),
+    )
+    cancellation = client.post(
+        f"/api/v1/orders/{order_id}/cancel/",
+        {},
+        format="json",
+        HTTP_ORIGIN="http://attacker.example",
+        HTTP_X_CSRFTOKEN=token,
+        HTTP_IDEMPOTENCY_KEY=str(uuid4()),
+    )
+
+    assert payment.status_code == cancellation.status_code == 403
+    assert payment.json()["code"] == cancellation.json()["code"] == "CSRF_FAILED"
+    assert Order.objects.get(pk=order_id).state == Order.State.AWAITING_PAYMENT
+    assert not hasattr(Order.objects.get(pk=order_id), "payment_attempt")
+    stock = StockItem.objects.get(product=product)
+    assert (stock.on_hand, stock.reserved) == (3, 1)
 
 
 @pytest.mark.django_db
