@@ -1,6 +1,6 @@
 # Testing Strategy
 
-Status: Accepted verification plan. PostgreSQL-backed catalog/inventory, order workflow, session/CSRF, owner-scoped HTTP API and schema tests are implemented. Browser and maintenance-restart coverage remain pending. [ADR-0020](../decisions/ADR-0020-quality-and-migration-policy.md).
+Status: Accepted verification plan. PostgreSQL-backed catalog/inventory, order workflow, session/CSRF, owner-scoped HTTP API, schema, browser purchase/accessibility, and maintenance-restart tests are implemented and have passed against the local stack. [ADR-0020](../decisions/ADR-0020-quality-and-migration-policy.md).
 
 | Level | Tool/environment | Behavior |
 |---|---|---|
@@ -11,9 +11,9 @@ Status: Accepted verification plan. PostgreSQL-backed catalog/inventory, order w
 | E2E | Playwright + real local app/DB | Purchase success, failure/cancel and own-order visibility |
 | Load | Deferred scenario-driven tooling | No invented performance thresholds |
 
-Use transaction-enabled tests/separate DB connections for races. Do not substitute SQLite for stock locking tests. Avoid mocks of the ORM or transaction boundary; mock only external delivery (none initially) and deterministic time/result inputs.
+Use transaction-enabled tests/separate DB connections for races. Do not substitute SQLite for stock locking tests. Avoid mocks of the ORM or transaction boundary; mock only external delivery (none initially) and deterministic time/result inputs. Playwright purchase tests write uniquely named fictional records and require the explicit `BLAST_ECOM_E2E_ALLOW_DATA_WRITES=true` opt-in; those records are intentionally retained.
 
-Mandatory cases: last unit concurrent checkout; cancellation/payment race; expiry while waiting for lock; repeated same key and changed payload; new-key repeated payment; maintenance restart; stock adjustment below reserved; price change vs snapshot; notification insert rollback vs delivery failure; cross-owner list/detail/action/replay; anonymous login CSRF; staff action bypass; logs free of secrets/addresses. PostgreSQL tests cover domain contention/replay/races, stock invariants, catalog/admin boundaries, state/audit constraints and rollback; session rotation/logout, generic login errors, CSRF, owner-isolated HTTP routes, request size and OpenAPI headers also have targeted PostgreSQL tests. Invalid-CSRF/foreign-Origin matrix, browser and maintenance restart cases remain pending.
+Mandatory cases: last unit concurrent checkout; cancellation/payment race; expiry while waiting for lock; repeated same key and changed payload; new-key repeated payment; maintenance restart; stock adjustment below reserved; price change vs snapshot; notification insert rollback vs delivery failure; cross-owner list/detail/action/replay; anonymous login CSRF; staff action bypass; logs free of secrets/addresses. PostgreSQL tests cover domain contention/replay/races, stock invariants, catalog/admin boundaries, state/audit constraints and rollback; session rotation/logout, generic login errors, CSRF, owner-isolated HTTP routes, request size and OpenAPI headers also have targeted PostgreSQL tests. Browser purchase/accessibility and maintenance restart cases are covered. Invalid-CSRF/foreign-Origin test combinations beyond the implemented CSRF and trusted-origin coverage remain a review item.
 
 Verify schema generated from serializers/views matches actual success/error bodies, security requirements and decimal representation. Changing schema regenerates frontend types. No E2E test compensates for missing ownership/concurrency tests.
 

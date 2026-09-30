@@ -10,7 +10,7 @@ Status: The first scaffold and dependency locks are implemented and verified on 
 | Django | 5.2.17 | Resolved in `backend/uv.lock`; system check passed |
 | Django REST framework | 3.16.1 | Resolved and exercised by PostgreSQL-backed catalog API tests |
 | psycopg | 3.3.6 | PostgreSQL 17.11 connection and migrations verified |
-| PostgreSQL | 17.11 (major line 17) | Fresh migration and connectivity verified in a disposable Docker container; persistent Compose setup remains planned |
+| PostgreSQL | 17.11 (major line 17) | Fresh migrations, connectivity, local Compose persistence, restart and readiness verified |
 | Docker Engine / Compose | 29.8.1 / 5.5.1 | Installed and running; local PostgreSQL Compose service verified |
 | Node.js | 24.21.0 | Official macOS arm64 archive checksum verified; used for frontend checks |
 | npm | 11.19.0 | Shipped with Node 24.21.0; `npm ci` passed |
@@ -41,13 +41,13 @@ The generated lockfiles pin transitive artifacts. `uv` 0.12.19 and Node/npm were
 | @hey-api/openapi-ts 0.99.0 | Generate TypeScript types from reviewed OpenAPI | Implemented; TypeScript-only plugin, generated output checked in; `npm run generate:api-types` |
 | Playwright Test 1.63.0 | End-to-end browser journeys | Implemented; registration, checkout, simulated payment, cancellation and order history against the local stack |
 | @axe-core/playwright 4.13.0 | Browser accessibility scans | Implemented; storefront, login and registration have no critical/serious axe findings |
-| Docker Compose + official `postgres:17.11-bookworm` image | Local PostgreSQL only; named persistent volume and loopback port binding | Implemented; no app containers or production deployment |
+| Docker Compose + official `postgres:17.11-bookworm` image | Local PostgreSQL only; named persistent volume and loopback port binding | Implemented and verified; no app containers or production deployment |
 
 Only add a tool when its implementation slice uses it. No generic shared package, Nx/Turborepo, Redux, Redis, RabbitMQ or application container is introduced here.
 
 ## Git and Review Policy
 
-GitHub Flow remains the accepted future convention: `main`, short-lived changes, Conventional Commits and squash merge. The owner has initialized the repository; this implementation has not created a branch or commit. High-risk changes require independent review and explicit approval under the repository gates.
+GitHub Flow remains the accepted convention: `main`, short-lived changes, Conventional Commits and squash merge. The initial implementation is committed locally on `main`; commits have not been pushed. High-risk changes require independent review and explicit approval under the repository gates.
 
 ## Official Sources
 
