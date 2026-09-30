@@ -48,6 +48,14 @@ The application settings read process environment variables; they do not parse `
    npm run dev -- --host 127.0.0.1
    ```
 
+   By default, Vite proxies API, admin and static requests to `http://127.0.0.1:8000`. To run the frontend against a separate local backend (for example, an isolated acceptance database), set `BLAST_ECOM_API_PROXY_TARGET` for the Vite process:
+
+   ```bash
+   BLAST_ECOM_API_PROXY_TARGET=http://127.0.0.1:8001 npm run dev -- --host 127.0.0.1
+   ```
+
+   This override affects only Vite's development proxy; the default remains unchanged and it is not a production API setting.
+
 5. In a third backend shell, run the restartable local maintenance loop:
 
    ```bash

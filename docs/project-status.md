@@ -8,7 +8,7 @@ Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, tr
 
 ## Current Objective
 
-Task-7 acceptance rerun and documentation reconciliation are complete except for a fresh write-enabled browser purchase run and the independent-review gate. Task-4 independent review is still required before final high-risk acceptance.
+Task-7 acceptance checks and documentation reconciliation are complete. The remaining high-risk blocker is independent review and subsequent final acceptance.
 
 ## Completed
 
@@ -32,7 +32,7 @@ Task-7 acceptance rerun and documentation reconciliation are complete except for
 - Same-origin CSRF/session API adapter with generated OpenAPI types, explicit API errors, non-retrying idempotent mutations and server-owned prices/outcomes.
 - Frontend catalog/cart and API adapter tests plus Playwright registration, checkout, simulated payment, cancellation and order-history E2E against the local stack.
 - Frontend dependency install, clean npm audit, type check, lint, formatting, unit/component tests and production build pass. Playwright browser purchase and Axe accessibility checks pass against the local stack.
-- Task-7 local acceptance rerun: backend 59 tests, Django system/migration checks, Ruff, formatting and mypy passed; frontend 5 unit/component tests, typecheck, lint, formatting, build and production dependency audit passed; OpenAPI TypeScript regeneration produced no diff; read-only Chromium/Axe E2E passed. The write-enabled purchase E2E remains backed by task-5 evidence and was not repeated because it deliberately retains synthetic database records.
+- Task-7 local acceptance rerun: backend 59 tests, Django system/migration checks, Ruff, formatting and mypy passed; frontend 5 unit/component tests, typecheck, lint, formatting, build and production dependency audit passed; OpenAPI TypeScript regeneration produced no diff; full Chromium purchase and accessibility E2E passed against a fresh PostgreSQL database on a temporary in-memory filesystem.
 - PostgreSQL-only Compose service uses a loopback-bound port, explicit health check and persistent named volume; fresh migrations, safe fictional seed, and bounded maintenance commands are implemented.
 - Database readiness performs a live query; API database connectivity failures return a generic 503. Seed and maintenance commands require local DEBUG configuration; seeding additionally requires an explicit environment opt-in.
 
@@ -40,7 +40,7 @@ Password reset/email verification, shared auth abuse controls, notification deli
 
 ## In Progress
 
-Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implemented and verified; independent review remains open. Task task-5 — browser journey: implemented, verified, checkpointed and committed. Task task-6 — local PostgreSQL and maintenance: implemented, verified, checkpointed and committed locally. Task task-7 — broad acceptance rerun and documentation reconciliation: verification passed except the independent-review gate and a fresh write-enabled E2E run.
+Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implemented and verified; independent review remains open. Task task-5 — browser journey: implemented, verified, checkpointed and committed. Task task-6 — local PostgreSQL and maintenance: implemented, verified, checkpointed and committed locally. Task task-7 — broad acceptance rerun and documentation reconciliation: local acceptance passed; independent review remains open.
 
 ## Pending Decisions
 
@@ -88,7 +88,7 @@ Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles
 
 1. Obtain independent review of the task-4 security/API surface; the existing audit is explicitly a self-review and does not satisfy this gate.
 2. After review, capture the owner's final high-risk acceptance decision and reconcile any findings.
-3. Rerun the write-enabled browser purchase E2E only after explicitly opting in on a confirmed disposable local database.
+3. Keep hosted deployment blocked until public-account and production-operation controls are designed and verified.
 
 ## Latest Report
 
