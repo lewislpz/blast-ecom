@@ -36,10 +36,11 @@ The generated lockfiles pin transitive artifacts. `uv` 0.12.19 and Node/npm were
 | mypy + Django/DRF stubs | Backend type checks | Implemented; strict check passed |
 | pytest + pytest-django | Backend unit/integration/API tests | Implemented; catalog/inventory PostgreSQL model/API/admin tests pass |
 | TypeScript strict + ESLint + Prettier | Frontend typing, lint and formatting | Implemented; checks passed |
-| Vitest + React Testing Library | UI/component behavior | Implemented; one placeholder render test passed |
+| Vitest + React Testing Library | UI/component behavior | Implemented; storefront and API client tests pass |
 | drf-spectacular | API schema generation | Implemented for catalog; reviewed schema at `backend/openapi.yaml` |
-| openapi-typescript | Generated frontend API types | Planned with customer frontend API integration |
-| Playwright | End-to-end browser journeys | Planned for later slice; not installed yet |
+| @hey-api/openapi-ts 0.99.0 | Generate TypeScript types from reviewed OpenAPI | Implemented; TypeScript-only plugin, generated output checked in; `npm run generate:api-types` |
+| Playwright Test 1.63.0 | End-to-end browser journeys | Implemented; registration, checkout, simulated payment, cancellation and order history against the local stack |
+| @axe-core/playwright 4.13.0 | Browser accessibility scans | Implemented; storefront, login and registration have no critical/serious axe findings |
 
 Only add a tool when its implementation slice uses it. No generic shared package, Nx/Turborepo, Redux, Redis, RabbitMQ or application container is introduced here.
 
@@ -54,5 +55,6 @@ GitHub Flow remains the accepted future convention: `main`, short-lived changes,
 - [drf-spectacular supported Django/DRF versions](https://drf-spectacular.readthedocs.io/en/stable/readme.html).
 - [Node.js release schedule](https://nodejs.org/en/about/previous-releases) and [v24.21.0 archive](https://nodejs.org/dist/v24.21.0/).
 - [Vite requirements](https://vite.dev/guide/) and [uv lock/sync behavior](https://docs.astral.sh/uv/concepts/projects/sync/).
+- [Playwright](https://playwright.dev/docs/intro) and [axe-core Playwright integration](https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright).
 
-Additional tool references: [Ruff](https://docs.astral.sh/ruff/), [django-stubs](https://github.com/typeddjango/django-stubs), [openapi-typescript](https://openapi-ts.dev/introduction), [psycopg](https://www.psycopg.org/psycopg3/docs/), [TypeScript strict](https://www.typescriptlang.org/tsconfig/strict.html), [Compose](https://docs.docker.com/compose/).
+Additional tool references: [Ruff](https://docs.astral.sh/ruff/), [django-stubs](https://github.com/typeddjango/django-stubs), [Hey API OpenAPI TypeScript](https://heyapi.dev/docs/openapi/typescript/get-started), [psycopg](https://www.psycopg.org/psycopg3/docs/), [TypeScript strict](https://www.typescriptlang.org/tsconfig/strict.html), [Compose](https://docs.docker.com/compose/).

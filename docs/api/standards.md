@@ -4,7 +4,7 @@ Status: Catalog read endpoints, same-origin session/CSRF account endpoints, and 
 
 ## Contract
 
-JSON under /api/v1/, lower-case plural resources, snake_case fields, UUID strings, UTC ISO-8601 timestamps and two-decimal money strings with currency EUR. Generated OpenAPI 3 through drf-spectacular is reviewed/versioned with implementation; use openapi-typescript to produce frontend types. Pin compatible generators and test schemas; generated types are not runtime authorization.
+JSON under /api/v1/, lower-case plural resources, snake_case fields, UUID strings, UTC ISO-8601 timestamps and two-decimal money strings with currency EUR. Generated OpenAPI 3 through drf-spectacular is reviewed/versioned with implementation; use `@hey-api/openapi-ts` to produce frontend types from `backend/openapi.yaml`. Pin compatible generators and test schemas; generated types are not runtime authorization. See [ADR-0022](../decisions/ADR-0022-api-type-generator.md).
 
 ## Initial Routes
 

@@ -1,6 +1,6 @@
 # Application Structure
 
-Status: Runtime, Users session API, catalog API/models, single-pool inventory, owner-scoped order API and order/reservation/payment-simulation domain operations, idempotency, audit records and durable notification intents are implemented. React purchase journey and notification delivery remain planned. [ADR-0003](../decisions/ADR-0003-repository-strategy.md), [ADR-0015](../decisions/ADR-0015-data-model-conventions.md), [ADR-0018](../decisions/ADR-0018-frontend-conventions.md).
+Status: Runtime, Users session API, catalog API/models, single-pool inventory, owner-scoped order API and order/reservation/payment-simulation domain operations, idempotency, audit records, durable notification intents and local React purchase journey are implemented. Notification delivery and hosted platform remain planned. [ADR-0003](../decisions/ADR-0003-repository-strategy.md), [ADR-0015](../decisions/ADR-0015-data-model-conventions.md), [ADR-0018](../decisions/ADR-0018-frontend-conventions.md), [ADR-0022](../decisions/ADR-0022-api-type-generator.md).
 
 ```text
 backend/
@@ -21,10 +21,12 @@ frontend/
   package.json
   package-lock.json
   src/
-    App.tsx                Current scaffold-only placeholder
-    app/                  Planned routing/providers/application shell
-    features/             Planned catalog, account, cart, checkout, orders
-    shared/               Planned fetch adapter and generated API types
+    App.tsx                Query provider and route composition
+    pages/                Catalog, product, cart, account, checkout, order pages
+    shared/api/            Same-origin CSRF/session adapter and generated OpenAPI types
+    shared/cart/           In-memory product-ID/quantity context
+    styles/                Shared CSS tokens and responsive app stylesheet
+    e2e/                   Local Playwright purchase and accessibility checks
 ```
 
 Each Django module has an unambiguous app label and owns its writes. Models and constraints represent persistence; services expose commands; selectors expose reads; serializers validate/shape HTTP; views handle transport/auth and call domain operations. Implemented admin writes go through product/category operations and the transactional stock adjustment operation.

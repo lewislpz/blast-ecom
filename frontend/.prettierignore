@@ -1,2 +1,5 @@
 dist
 node_modules
+src/shared/api/generated/**
+playwright-report
+test-results

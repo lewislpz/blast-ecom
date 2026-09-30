@@ -47,6 +47,27 @@ def test_csrf_bootstrap_and_local_registration_are_protected_and_customer_only()
 
 
 @pytest.mark.django_db
+@override_settings(
+    DEBUG=True,
+    CSRF_TRUSTED_ORIGINS=["http://127.0.0.1:5173"],
+)
+def test_local_vite_origin_can_register_with_bootstrapped_csrf_token() -> None:
+    client = APIClient(enforce_csrf_checks=True)
+    token = csrf_token(client)
+
+    response = client.post(
+        "/api/v1/auth/register/",
+        {"email": "vite-customer@example.test", "password": "A-long-safe-password-123"},
+        format="json",
+        HTTP_ORIGIN="http://127.0.0.1:5173",
+        HTTP_X_CSRFTOKEN=token,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["email"] == "vite-customer@example.test"
+
+
+@pytest.mark.django_db
 @override_settings(DEBUG=False)
 def test_registration_is_disabled_outside_local_debug_mode() -> None:
     client = APIClient(enforce_csrf_checks=True)

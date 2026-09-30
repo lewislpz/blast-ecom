@@ -11,7 +11,7 @@ Updated: 2026-09-28. Decisions 0013–0021 were made by Codex under explicit use
 | Data | UUIDv4, EUR decimals, snapshots, explicit FKs/locks | ADR-0015 |
 | Identity/admin | Django sessions, same origin/CSRF, custom user, restricted Django admin | ADR-0016 |
 | API | JSON REST v1, Problem Details, drf-spectacular, scoped idempotency | ADR-0017 |
-| Frontend | Router/Query, generated types, temporary cart, CSS Modules | ADR-0018 |
+| Frontend | Router/Query, generated OpenAPI types (generator superseded by ADR-0022), temporary cart, shared stylesheet | ADR-0018, ADR-0022 |
 | Tooling/local | Runtime lines, uv/npm, native apps + Compose PostgreSQL | ADR-0019 |
 | Quality | Test pyramid, PostgreSQL concurrency, migration procedure, GitHub Flow policy | ADR-0020 |
 | Operations | Logs/audit, health checks, maintenance; defer distribution | ADR-0021 |

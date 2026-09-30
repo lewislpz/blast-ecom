@@ -29,4 +29,4 @@ Capabilities: Implemented, Planned, Proposed, Under discussion, Deprecated. Deci
 
 Accepted design does not mean implemented software. Prior ADRs preserve the facts/pending questions at their creation; active specifications and later ADRs refine them. No older choice is silently reversed. Replacements require linked Superseded/Accepted records.
 
-ADR-0013 through ADR-0021 use the user's explicit delegation for this round, recorded as Codex decisions. Update indexes, diagrams, status and affected specs in the same change. Avoid empty placeholders; infrastructure/runbooks wait for real subjects.
+ADR-0013 through ADR-0021 use the user's explicit delegation for that round, recorded as Codex decisions. ADR-0022 records the follow-up OpenAPI generator compatibility decision under the user's continuing implementation delegation. Update indexes, diagrams, status and affected specs in the same change. Avoid empty placeholders; infrastructure/runbooks wait for real subjects.

@@ -4,24 +4,24 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 
 ## Current Status
 
-**Phase 1 — Core Domain & Application Foundation.** Runtime scaffold, catalog/inventory, transactional order domain, session/CSRF flows and owner-scoped customer order APIs are implemented and verified against a temporary PostgreSQL 17.11 Docker database. The browser journey, notification delivery and persistent PostgreSQL Compose setup are not implemented. This is a local simulation, not production-ready commerce.
+**Phase 1 — Core Domain & Application Foundation.** Runtime scaffold, catalog/inventory, transactional order domain, session/CSRF APIs and customer browser journey are implemented and locally verified against PostgreSQL. Persistent PostgreSQL Compose setup and notification delivery remain pending. This is a local simulation, not production-ready commerce.
 
 ## Implemented
 
 - Python 3.13 / Django 5.2 / Django REST Framework project skeleton with a custom UUID-keyed user model and normalized unique email.
-- React 19 / TypeScript / Vite scaffold with a Spanish placeholder page.
+- React 19 / TypeScript / Vite storefront with catalog, product detail, temporary cart, local-demo account flow, checkout, payment simulation, cancellation and own order history.
 - Read-only public active catalog API, category filtering, deterministic product sorting, pagination and stock availability indicator.
 - Staff-permission-gated Django Admin catalog management and append-only audited stock adjustments that respect reserved units.
 - Atomic order creation with current-price checks, address/product snapshots, stock reservations, scoped idempotency, payment simulation, cancellation and expiry transitions. PostgreSQL tests cover contention and rollback.
 - Durable append-only audit entries and transactional notification intents for order lifecycle transitions.
 - RFC 9457 Problem Details for DRF errors; OpenAPI generation and validation for the catalog contract.
-- Locked backend and frontend dependencies, lint/type/test/build commands, PostgreSQL-backed backend tests and frontend scaffold smoke test.
+- Locked backend and frontend dependencies, generated OpenAPI TypeScript contracts, lint/type/test/build commands, PostgreSQL-backed backend tests, frontend behavior/API-client tests and browser E2E purchase coverage.
 - Same-origin session authentication with CSRF bootstrap, login/logout/current-user; local registration is available only when `DEBUG=true`.
 - Owner-scoped order list/create/detail/payment-simulation/cancel APIs, idempotency headers, strict request validation, 64 KiB request cap, Problem Details and generated OpenAPI.
 
 ## Planned
 
-Customer order history/checkout UI, local PostgreSQL Compose, notification-delivery simulation and restartable maintenance. Password reset, email verification, shared authentication abuse controls and staff MFA are not implemented; public account use is not ready. Payments, taxes, shipping, and notifications remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
+Local PostgreSQL Compose, notification-delivery simulation and restartable maintenance. Password reset, email verification, shared authentication abuse controls and staff MFA are not implemented; public account use is not ready. Payments, taxes, shipping, and notifications remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
 
 ## Architecture and Stack
 

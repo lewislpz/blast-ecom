@@ -25,6 +25,7 @@
 | [ADR-0019](ADR-0019-tooling-and-local-development.md) | Tooling and Local Development | Accepted | 2026-09-28 |
 | [ADR-0020](ADR-0020-quality-and-migration-policy.md) | Quality, Git and Migration Policy | Accepted | 2026-09-28 |
 | [ADR-0021](ADR-0021-operations-baseline-and-deferrals.md) | Operational Baseline and Deferred Infrastructure | Accepted | 2026-09-28 |
+| [ADR-0022](ADR-0022-api-type-generator.md) | Frontend OpenAPI Type Generator | Accepted | 2026-09-30 |
 
 ## Policy
 

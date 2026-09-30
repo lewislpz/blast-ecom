@@ -1,14 +1,14 @@
 # Blast Ecom Project Status
 
-Updated: 2026-09-29
+Updated: 2026-09-30
 
 ## Current Phase
 
-Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, session/CSRF authentication and owner-scoped order HTTP APIs are implemented and targeted-verified. Next is the customer browser journey.
+Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, session/CSRF authentication, owner-scoped order APIs and the local customer browser journey are implemented. Task-5 frontend and browser checks pass; persistent Compose and broader task-7 acceptance remain.
 
 ## Current Objective
 
-Implement task-5 customer browser journey against the verified same-origin session/CSRF and order APIs.
+Record task-5 verification and proceed to task-6 reproducible PostgreSQL Compose plus safe seed/maintenance workflow. Task-4 independent review and explicit approval remain required before the high-risk slice can be declared complete.
 
 ## Completed
 
@@ -16,7 +16,7 @@ Implement task-5 customer browser journey against the verified same-origin sessi
 - ADR-0013 through ADR-0021: nine grouped decisions selected by Codex under explicit user delegation on 2026-09-28.
 - Product lifecycle, data model/locks, account/admin policy, API/idempotency, frontend, tooling, local runtime, testing, migrations and observability specifications.
 - Initial threat model, acceptance matrix, decision register and decision report.
-- Twenty-one Accepted ADRs total. Original twelve preserved unchanged.
+- Twenty-one Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
 - Backend and frontend dependency locks, checks and starter scaffolds.
 - Custom UUID-keyed Django user model with normalized unique email and generated initial migration.
 - Fresh PostgreSQL 17.11 connectivity verified through a temporary Docker container; all migrations, including `users.0001_initial`, applied successfully.
@@ -24,23 +24,26 @@ Implement task-5 customer browser journey against the verified same-origin sessi
 - Product/category and stock models, PostgreSQL constraints, transactional audited adjustments, staff-only Django Admin and read-only public catalog API implemented.
 - RFC 9457 API exception handling and validated OpenAPI schema implemented; catalog/inventory API/admin/schema tests pass against PostgreSQL.
 - Order, item snapshot, stock reservation, payment attempt, idempotency, audit and notification-intent models/migrations and domain operations implemented; PostgreSQL lock/race/replay/rollback tests pass.
-- Backend test suite: 50 passed against PostgreSQL 17.11; Ruff, formatting, mypy and migration drift checks pass.
+- Backend test suite: 51 passed against PostgreSQL 17.11; Ruff, formatting, mypy and migration drift checks pass.
 - Session auth API: CSRF bootstrap, local-only registration, generic login, rotating bounded sessions, logout and current-user route.
 - Customer order API: owner-scoped list/create/detail/payment-simulation/cancel, strict validation, UUIDv4 idempotency keys and Problem Details.
 - OpenAPI regenerated and validates auth/CSRF/idempotency headers and route contracts.
-- Frontend `npm ci`, type check, lint, formatting check, one smoke test and production build passed.
+- React storefront routes for catalog, product detail, in-memory cart, local account, checkout and own order history/payment simulation/cancellation.
+- Same-origin CSRF/session API adapter with generated OpenAPI types, explicit API errors, non-retrying idempotent mutations and server-owned prices/outcomes.
+- Frontend catalog/cart and API adapter tests plus Playwright registration, checkout, simulated payment, cancellation and order-history E2E against the local stack.
+- Frontend dependency install, clean npm audit, type check, lint, formatting, unit/component tests and production build pass. Playwright browser purchase and Axe accessibility checks pass against the local stack.
 
-Browser implementation, password reset/email verification, shared auth abuse controls, notification delivery, persistent Compose setup and deployment remain unimplemented. API registration is local DEBUG-only; no public-account or production readiness is claimed.
+Password reset/email verification, shared auth abuse controls, notification delivery, persistent Compose setup and deployment remain unimplemented. API registration is local DEBUG-only; no public-account or production readiness is claimed.
 
 ## In Progress
 
-Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implementation and targeted verification complete; full-slice high-risk gates remain open.
+Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implemented and verified; independent review and explicit approval gates remain open. Task task-5 — browser journey: implemented and verified; evidence/checkpoint pending.
 
 ## Pending Decisions
 
 See the [decision register](roadmap/decision-register.md) for complete trigger-based deferrals.
 
-- Implementation details: generated frontend client, remaining API contract details and empirical query plans.
+- Implementation details: remaining API contract details and empirical query plans.
 - Before public accounts: real email verification/reset, shared abuse controls, staff MFA/access restrictions and privacy retention.
 - Before real sales: markets/jurisdiction, taxes/invoicing, actual shipping charges/coverage and fulfillment.
 - Before hosted operations: environments/provider/budget, secrets/TLS/networking, backup/restore, RPO/RTO, SLOs and actionable monitoring.
@@ -54,11 +57,11 @@ The task-1 live database check passed against a disposable container. The reprod
 
 ## Known Issues
 
-Git is initialized on `main` and tracks `origin/main`; the scaffold is committed locally. Django/React source and lockfiles exist. Disposable PostgreSQL domain validation passed, but Compose, customer-facing checkout/authentication, browser flow, notification delivery and deployment do not yet exist.
+Git is initialized on `main` and tracks `origin/main`; the core API and verified browser slices are committed locally. Disposable PostgreSQL validation passed; Compose, notification delivery and deployment remain unimplemented.
 
 ## Technical Debt
 
-No code debt exists. Django coupling, shared storage and local simulation are deliberate choices. Future operational limitations are documented gates, not hidden production readiness.
+Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles rather than scoping them as CSS Modules. Split/scope styles when component ownership settles; do not add a styling framework solely to address this. Django coupling, shared storage and local simulation are deliberate choices. Future operational limitations are documented gates, not hidden production readiness.
 
 ## Risks
 
@@ -80,7 +83,7 @@ No code debt exists. Django coupling, shared storage and local simulation are de
 
 ## Next Steps
 
-1. Implement customer UI over the session and order APIs.
+1. Record task-5 workspace evidence/checkpoint; keep task-4 independent review and user approval visible as open high-risk gates.
 2. Add reproducible PostgreSQL-only Compose setup and restartable maintenance.
 3. Add notification/idempotency maintenance and recovery scenarios.
 4. Apply full-slice threat-model, integration, independent-review and user-approval gates before declaring the slice complete.

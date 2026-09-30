@@ -16,6 +16,13 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
+_default_csrf_origins = "http://localhost:5173,http://127.0.0.1:5173" if DEBUG else ""
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", _default_csrf_origins).split(",")
+    if origin.strip()
+]
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",

@@ -1,19 +1,72 @@
-import type { JSX } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router'
+import { useEffect, useState } from 'react'
 
-import './App.css'
+import { CartProvider } from './shared/cart/CartContext'
+import { Footer, Header } from './shared/ui'
+import { AccountPagesPlaceholder } from './pages/AccountPagesPlaceholder'
+import {
+  AuthPage,
+  CheckoutPage,
+  OrderDetailPage,
+  OrdersPage,
+} from './pages/AccountPages'
+import { CartPage, CatalogPage, ProductPage } from './pages/StorePages'
+import './styles/global.css'
 
-function App(): JSX.Element {
+function StoreRoutes() {
   return (
-    <main className="landing-page">
-      <p className="eyebrow">Blast Ecom</p>
-      <h1>La tienda está en preparación</h1>
-      <p>
-        Esta aplicación de demostración todavía no permite realizar compras. El
-        catálogo y el proceso de pedido se incorporarán en los siguientes
-        incrementos.
-      </p>
-    </main>
+    <CartProvider>
+      <BrowserRouter>
+        <div className="app-shell">
+          <RouteFocus />
+          <Header />
+          <div className="route-content">
+            <Routes>
+              <Route path="/" element={<CatalogPage />} />
+              <Route path="/products/:id" element={<ProductPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/login" element={<AuthPage mode="login" />} />
+              <Route path="/register" element={<AuthPage mode="register" />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/account/orders" element={<OrdersPage />} />
+              <Route path="/orders/:id" element={<OrderDetailPage />} />
+              <Route path="*" element={<AccountPagesPlaceholder />} />
+            </Routes>
+          </div>
+          <Footer />
+        </div>
+      </BrowserRouter>
+    </CartProvider>
   )
 }
 
-export default App
+function RouteFocus() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const heading = document.querySelector<HTMLElement>(
+      '.route-content main h1',
+    )
+    if (!heading) return
+    heading.tabIndex = -1
+    heading.focus({ preventScroll: true })
+  }, [pathname])
+  return null
+}
+
+export default function App() {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: { retry: false, refetchOnWindowFocus: false },
+          mutations: { retry: false },
+        },
+      }),
+  )
+  return (
+    <QueryClientProvider client={queryClient}>
+      <StoreRoutes />
+    </QueryClientProvider>
+  )
+}

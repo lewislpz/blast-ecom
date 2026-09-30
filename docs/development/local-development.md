@@ -1,6 +1,6 @@
 # Local Development
 
-Status: The Django/React skeleton and dependency locks exist. The custom-user migration has been applied to a temporary PostgreSQL 17.11 container. A reproducible Compose service and complete local workflow have not been added yet.
+Status: The Django API and React customer journey run as separate local host processes against PostgreSQL. The customer browser journey has been verified through the Vite same-origin proxy. A reproducible Compose service and seed/maintenance workflow have not been added yet.
 
 ## Runtime
 
@@ -14,7 +14,7 @@ Exact locked application packages and verification status are in [tooling.md](to
 
 Copy `.env.example` to a local `.env`, replace `DJANGO_SECRET_KEY` with a private random value of at least 50 characters, and keep `.env` untracked. For example, generate a value with `python -c 'import secrets; print(secrets.token_urlsafe(50))'`. The current settings require the key explicitly and default database connection details to the local development database. The example file contains no real credential.
 
-The application settings read process environment variables; they do not parse `.env` themselves. In a shell, export the file's values explicitly (`set -a; source .env; set +a`) before running backend commands.
+The application settings read process environment variables; they do not parse `.env` themselves. In a shell, export the file's values explicitly (`set -a; source .env; set +a`) before running backend commands. With `DJANGO_DEBUG=true`, settings trust only the default local Vite origins (`http://localhost:5173` and `http://127.0.0.1:5173`) for Django's CSRF Origin check. Configure `DJANGO_CSRF_TRUSTED_ORIGINS` explicitly if local hostnames/ports differ. This development exception is empty by default outside DEBUG; production must use the actual same-origin host or a reviewed explicit origin list.
 
 ## Current Scaffold Checks
 
@@ -30,7 +30,7 @@ DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" uv run mypy modules
 DJANGO_SECRET_KEY="$DJANGO_SECRET_KEY" uv run pytest
 ```
 
-From `frontend/`:
+From `frontend/` (with Django available at `127.0.0.1:8000`):
 
 ```bash
 npm ci
@@ -39,9 +39,10 @@ npm test
 npm run lint
 npm run format:check
 npm run build
+npm run test:e2e
 ```
 
-The Python checks and React placeholder test/build have run successfully. The custom-user migration was applied to a fresh PostgreSQL 17.11 database; Django's system check, migration drift check and migration-history inspection then passed without a database connectivity warning. This was a disposable validation container without a persistent volume, not the developer Compose setup.
+Run Django on `127.0.0.1:8000`; Playwright starts Vite automatically for E2E runs. The read-only storefront/accessibility check can run directly with `npm run test:e2e`. The purchase journey creates a uniquely named fictional product, account and orders in the configured database. To enable that data-writing test, verify the database is disposable/local and explicitly set `BLAST_ECOM_E2E_ALLOW_DATA_WRITES=true` before `npm run test:e2e`. These synthetic records are intentionally not deleted automatically. PostgreSQL must be migrated and Chromium installed with `npx playwright install chromium`; reproducible Compose and seed commands are still pending.
 
 ## Planned Full Local Flow
 

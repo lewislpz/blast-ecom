@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded
 
 ## Date
 
@@ -28,7 +28,11 @@ Cohesion with ADR-0001 through ADR-0012, correctness, manageable development/ope
 
 Use React Router in declarative mode, TanStack Query for server state, a small fetch wrapper with credentials/CSRF/error handling, native controlled forms and CSS Modules with shared CSS variables. Use component state and a small cart context; no Redux, persistent cart or UI component suite initially.
 
-The cart stores product IDs and quantities only, remains in memory and resets on reload/logout. The backend owns price/stock truth. Generate TypeScript API types from OpenAPI using openapi-typescript; do not duplicate domain rules in React. Disable blind mutation retries. Provide loading, empty, error, success and keyboard-accessible states. Document Vite SPA search visibility limits; server rendering is deferred until a public acquisition need is established.
+The cart stores product IDs and quantities only, remains in memory and resets on reload/logout. The backend owns price/stock truth. Generate TypeScript API types from OpenAPI; do not duplicate domain rules in React. Disable blind mutation retries. Provide loading, empty, error, success and keyboard-accessible states. Document Vite SPA search visibility limits; server rendering is deferred until a public acquisition need is established.
+
+The originally specified `openapi-typescript` generator was superseded by [ADR-0022](ADR-0022-api-type-generator.md) before the browser implementation because its maintained major line does not accept the repository's TypeScript 6 toolchain, while its compatible older release resolved a high-severity transitive dependency advisory.
+
+Implementation note: the first browser slice uses one global application stylesheet with shared CSS variables rather than CSS Modules. This is a deliberate initial simplification, not a change to the accepted future styling convention; the current stylesheet size is tracked as technical debt and should be split/scoped when component ownership is clearer.
 
 ## Approval and Provenance
 
@@ -51,6 +55,7 @@ Measured UX/state complexity, reusable design needs or real search acquisition r
 ## Related Decisions and Specifications
 
 - [frontend](../development/frontend.md).
+- [ADR-0022](ADR-0022-api-type-generator.md) (superseding API type-generation tool only).
 - [Decision index](README.md).
 
 ## Notes
