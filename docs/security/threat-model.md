@@ -1,6 +1,6 @@
 # Initial Threat Model
 
-Status: Design review only. No controls have been implemented or penetration-tested.
+Status: Design baseline with catalog/inventory controls, transactional order workflows and initial session/CSRF/owner-scoped API controls implemented. Targeted tests cover auth/session lifecycle, request validation, owner isolation, schema, and secret-safe logging. Independent review and full-slice high-risk gates remain pending.
 
 Assets: customer identities/addresses, session secrets, order history, stock accuracy, administrative privileges and developer credentials.
 
@@ -8,16 +8,16 @@ Trust boundaries: browser→HTTP API; browser→admin; application→PostgreSQL;
 
 | Threat | Impact | Planned control | Required verification |
 |---|---|---|---|
-| Cross-customer object access | Address/order disclosure | Owner-scoped selectors on lists, detail, mutations and replay | Use another user's UUID/key for every route |
+| Cross-customer object access | Address/order disclosure | Owner-scoped selectors on lists, detail, mutations and replay | PostgreSQL API test confirms another user's UUID cannot list/read/act on order |
 | Price/status/role tampering | Fraud or privilege escalation | Explicit input allowlist; server totals; staff fields read-only | Submit forged totals, roles and nested fields |
-| CSRF including anonymous login | Unwanted actions or login confusion | Same-origin design and explicit Django CSRF checks | Missing/wrong token and foreign Origin tests on all unsafe auth routes |
-| Session theft/fixation | Account compromise | HttpOnly/Secure/Lax, rotation, expiry, logout revocation | Reuse old session across login/logout/password reset |
-| Password guessing/enumeration | Account takeover | Generic responses, validators, public shared throttling gate | Failure responses, abuse tests before exposure |
-| Concurrent checkout/replay | Oversell or duplicate charge effects | Row locks, constraints, scoped idempotency | Real PostgreSQL concurrent last-unit/race tests |
-| Admin bypasses domain logic | Inventory/order corruption | Restricted admin, service actions and transactional audit | Generic edit/delete/bulk paths cannot bypass actions |
+| CSRF including anonymous login | Unwanted actions or login confusion | Explicit Django CSRF checks on unsafe auth/order routes; JSON token bootstrap | Missing token tested for auth and order; invalid token and foreign Origin remain to verify |
+| Session theft/fixation | Account compromise | HttpOnly/Secure/Lax, login rotation, bounded expiry, logout revocation | Session rotation, expiry and logout tested; password reset does not exist |
+| Password guessing/enumeration | Account takeover | Generic login failures, password validators; shared throttling gate before exposure | Generic failures/logs tested; brute-force control not implemented |
+| Concurrent checkout/replay | Oversell or duplicate charge effects | Row locks, constraints, scoped idempotency | PostgreSQL domain races/replay and API owner isolation/replay tests pass |
+| Admin bypasses domain logic | Inventory/order corruption | Catalog operations use owner services; stock counters are read-only and adjustment writes are permission-gated, locked and audited | Targeted negative/positive admin tests pass; broader order admin paths remain unimplemented |
 | Stored description script | Browser compromise | Plain text, React escaping, no arbitrary HTML | Script-shaped strings render as text |
 | Secret/PII in logs | Data leak | Allowlisted metadata; no bodies/cookies/passwords/addresses | Capture logs during errors and auth flows |
 | Maintenance crash | Stock held too long, delayed notifications | Deadline checks, durable intents, restartable commands | Kill/restart scenarios and backlog visibility |
 | Destructive migration | Lost history or stock | Expand/contract, review, backup/restore gates | Clean/upgrade tests; recovery test before real data |
 
-Residual gates: email ownership, public auth abuse controls, staff MFA, real data retention/erasure, hosted TLS/secrets, backup restoration and external provider threats. Auth implementation must use the repository's high-risk review/test gates; this document does not satisfy future runtime gates automatically.
+Residual gates: invalid-CSRF/foreign-Origin coverage for every unsafe endpoint, email ownership, public auth abuse controls, staff MFA, real data retention/erasure, hosted TLS/secrets, backup restoration and external provider threats. This document does not satisfy independent review or future runtime gates automatically.

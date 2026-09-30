@@ -1,12 +1,12 @@
 # Local Development
 
-Status: The Django/React skeleton and dependency locks exist. The complete local stack is not yet runnable because PostgreSQL/Compose setup has not been added. The current backend migration has not been applied to a database.
+Status: The Django/React skeleton and dependency locks exist. The custom-user migration has been applied to a temporary PostgreSQL 17.11 container. A reproducible Compose service and complete local workflow have not been added yet.
 
 ## Runtime
 
 - Python 3.13.15, with `uv` available on `PATH`.
 - Node.js 24.21.0 and npm 11.19.0 (`frontend/.nvmrc`).
-- PostgreSQL 17 will be provided by the planned local Compose configuration. Docker/Compose is not currently installed in the implementation environment.
+- PostgreSQL 17 will be provided by the planned local Compose configuration. Docker Desktop and Compose are installed; in the current Codex shell the Docker CLI must be invoked through Docker Desktop's resources path because it is not on `PATH`.
 
 Exact locked application packages and verification status are in [tooling.md](tooling.md).
 
@@ -41,7 +41,7 @@ npm run format:check
 npm run build
 ```
 
-The Python checks and React placeholder test/build have run successfully. Django's migration consistency check currently warns that it cannot connect to `localhost:5432`; it reports no model/migration drift, but that warning means the database history check has not run.
+The Python checks and React placeholder test/build have run successfully. The custom-user migration was applied to a fresh PostgreSQL 17.11 database; Django's system check, migration drift check and migration-history inspection then passed without a database connectivity warning. This was a disposable validation container without a persistent volume, not the developer Compose setup.
 
 ## Planned Full Local Flow
 

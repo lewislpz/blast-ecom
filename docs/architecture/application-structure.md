@@ -1,6 +1,6 @@
 # Application Structure
 
-Status: The repository and initial runtime skeleton are implemented. Only the custom Users model/migration and a non-functional React landing placeholder exist; the remaining domain modules and behavior below are planned. [ADR-0003](../decisions/ADR-0003-repository-strategy.md), [ADR-0015](../decisions/ADR-0015-data-model-conventions.md), [ADR-0018](../decisions/ADR-0018-frontend-conventions.md).
+Status: Runtime, Users session API, catalog API/models, single-pool inventory, owner-scoped order API and order/reservation/payment-simulation domain operations, idempotency, audit records and durable notification intents are implemented. React purchase journey and notification delivery remain planned. [ADR-0003](../decisions/ADR-0003-repository-strategy.md), [ADR-0015](../decisions/ADR-0015-data-model-conventions.md), [ADR-0018](../decisions/ADR-0018-frontend-conventions.md).
 
 ```text
 backend/
@@ -10,12 +10,12 @@ backend/
   config/                 Settings and Django entry points
   modules/
     users/                Custom AbstractUser and initial migration (implemented)
-    products/             Planned
-    inventory/            Planned
-    orders/               Planned
-    payments/             Planned simulator module
-    notifications/        Planned local durable intent
-  common/                 Planned minimal request/error/idempotency infrastructure
+    products/             Category/Product records, owner operations, public read API, staff catalog admin (implemented)
+    inventory/            StockItem, Reservation, adjustments and owner operations (implemented)
+    orders/               Order snapshots, state transitions, checkout/cancel/expiry operations (implemented)
+    payments/             One-attempt local deterministic simulator (implemented)
+    notifications/        Durable transition intent records (implemented; delivery pending)
+  common/                 Problem Details, audit trail and scoped idempotency infrastructure (implemented)
   tests/                  Shared backend test support (planned)
 frontend/
   package.json
@@ -27,8 +27,8 @@ frontend/
     shared/               Planned fetch adapter and generated API types
 ```
 
-Each future Django module has an unambiguous app label and owns its writes. Models and constraints represent persistence; services expose commands; selectors expose reads; serializers validate/shape HTTP; views handle transport/auth and call domain operations. Admin actions use those same operations.
+Each Django module has an unambiguous app label and owns its writes. Models and constraints represent persistence; services expose commands; selectors expose reads; serializers validate/shape HTTP; views handle transport/auth and call domain operations. Implemented admin writes go through product/category operations and the transactional stock adjustment operation.
 
-Orders will coordinate checkout/payment/cancellation in the application layer, calling Inventory and Payments operations rather than updating their tables directly. The coordinator owns the atomic transaction; module operations participate without committing independently. Cross-module reads use explicit selectors and accepted foreign keys only.
+Orders coordinates checkout/payment/cancellation in the application layer, calling Inventory and Payments operations rather than updating their tables directly. The coordinator owns the atomic transaction; module operations participate without committing independently. Notifications and Common likewise expose owner operations for intent/audit writes. Cross-module reads use explicit selectors and accepted foreign keys only.
 
 Do not add generic repositories, one class per operation, internal HTTP, event bus, broker or cache merely to mimic future microservices. Django framework tables are technical data; request/idempotency infrastructure is shared technical code rather than another business domain. The frontend depends on generated OpenAPI types, never ORM models.

@@ -1,14 +1,14 @@
 # Blast Ecom Project Status
 
-Updated: 2026-09-28
+Updated: 2026-09-29
 
 ## Current Phase
 
-Phase 1 — Core Domain & Application Foundation. The first implementation increment is in progress; its PostgreSQL migration/connectivity acceptance remains unverified.
+Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, session/CSRF authentication and owner-scoped order HTTP APIs are implemented and targeted-verified. Next is the customer browser journey.
 
 ## Current Objective
 
-Complete the runtime scaffold against the selected PostgreSQL baseline, then implement catalog and inventory invariants as the next bounded increment.
+Implement task-5 customer browser journey against the verified same-origin session/CSRF and order APIs.
 
 ## Completed
 
@@ -19,20 +19,28 @@ Complete the runtime scaffold against the selected PostgreSQL baseline, then imp
 - Twenty-one Accepted ADRs total. Original twelve preserved unchanged.
 - Backend and frontend dependency locks, checks and starter scaffolds.
 - Custom UUID-keyed Django user model with normalized unique email and generated initial migration.
-- Backend Django check, migration drift check (without database-history verification), Ruff, mypy and three pure unit cases passed.
+- Fresh PostgreSQL 17.11 connectivity verified through a temporary Docker container; all migrations, including `users.0001_initial`, applied successfully.
+- Backend Django system/migration checks, Ruff, mypy, 17 catalog/inventory integration/API/admin tests and OpenAPI validation passed.
+- Product/category and stock models, PostgreSQL constraints, transactional audited adjustments, staff-only Django Admin and read-only public catalog API implemented.
+- RFC 9457 API exception handling and validated OpenAPI schema implemented; catalog/inventory API/admin/schema tests pass against PostgreSQL.
+- Order, item snapshot, stock reservation, payment attempt, idempotency, audit and notification-intent models/migrations and domain operations implemented; PostgreSQL lock/race/replay/rollback tests pass.
+- Backend test suite: 50 passed against PostgreSQL 17.11; Ruff, formatting, mypy and migration drift checks pass.
+- Session auth API: CSRF bootstrap, local-only registration, generic login, rotating bounded sessions, logout and current-user route.
+- Customer order API: owner-scoped list/create/detail/payment-simulation/cancel, strict validation, UUIDv4 idempotency keys and Problem Details.
+- OpenAPI regenerated and validates auth/CSRF/idempotency headers and route contracts.
 - Frontend `npm ci`, type check, lint, formatting check, one smoke test and production build passed.
 
-The purchase journey, API, authentication flows, catalog, inventory, PostgreSQL runtime and deployment remain unimplemented.
+Browser implementation, password reset/email verification, shared auth abuse controls, notification delivery, persistent Compose setup and deployment remain unimplemented. API registration is local DEBUG-only; no public-account or production readiness is claimed.
 
 ## In Progress
 
-Task task-1 — scaffold and runtime compatibility: code and lockfiles are present. Waiting for an available PostgreSQL 17 service to apply the initial migration and verify the connection before marking the task complete.
+Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implementation and targeted verification complete; full-slice high-risk gates remain open.
 
 ## Pending Decisions
 
 See the [decision register](roadmap/decision-register.md) for complete trigger-based deferrals.
 
-- Implementation details: concrete model field lengths, generated schema/client, local configuration and empirical query plans.
+- Implementation details: generated frontend client, remaining API contract details and empirical query plans.
 - Before public accounts: real email verification/reset, shared abuse controls, staff MFA/access restrictions and privacy retention.
 - Before real sales: markets/jurisdiction, taxes/invoicing, actual shipping charges/coverage and fulfillment.
 - Before hosted operations: environments/provider/budget, secrets/TLS/networking, backup/restore, RPO/RTO, SLOs and actionable monitoring.
@@ -42,11 +50,11 @@ These are deliberately deferred; Redis/RabbitMQ or Kubernetes are not required n
 
 ## Blockers
 
-The local implementation environment has no Docker/Compose or PostgreSQL server. Do not begin PostgreSQL-dependent catalog/inventory integration work until task-1's live database check passes. Public/real-data use remains blocked by launch gates above.
+The task-1 live database check passed against a disposable container. The reproducible local Compose setup is still pending; public/real-data use remains blocked by launch gates above.
 
 ## Known Issues
 
-Git is initialized on `main` and tracks `origin/main`; no commit has been made for the implementation in progress. Django/React source and lockfiles now exist. PostgreSQL, Compose, purchase behavior, runtime database tests and deployment do not.
+Git is initialized on `main` and tracks `origin/main`; the scaffold is committed locally. Django/React source and lockfiles exist. Disposable PostgreSQL domain validation passed, but Compose, customer-facing checkout/authentication, browser flow, notification delivery and deployment do not yet exist.
 
 ## Technical Debt
 
@@ -67,16 +75,15 @@ No code debt exists. Django coupling, shared storage and local simulation are de
 | R-09 | Migration locks/data loss | Review and clean/upgrade/recovery validation | Open |
 | R-10 | Local auth defaults mistaken for public readiness | Threat model and public-account gates | Open |
 | R-11 | Maintenance delay holds stock | Deadline checks, durable state, backlog visibility | Open |
-| R-12 | Runtime lines mistaken for verified lock set | Exact Python/JS locks and local checks are verified; PostgreSQL runtime check remains pending | Partially resolved |
-| R-13 | No local PostgreSQL/Compose available | Add the selected PostgreSQL-only Compose service and verify initial migration/connectivity before domain persistence work | Open |
+| R-12 | Runtime lines mistaken for verified lock set | Exact Python/JS locks and local checks are verified; PostgreSQL 17.11 connection and initial migration are now verified | Resolved for scaffold |
+| R-13 | No reproducible local PostgreSQL setup | Add the selected PostgreSQL-only Compose service with safe persistence behavior and document setup | Open |
 
 ## Next Steps
 
-1. Provide Docker/Compose or a PostgreSQL 17 server for local development.
-2. Apply the custom-user migration and run PostgreSQL-backed scaffold verification.
-3. Implement catalog and inventory invariants with PostgreSQL integration tests.
-4. Implement orders/reservations, API security and the customer UI in approved-plan order.
-5. Apply high-risk threat-model, tests, integration, independent-review and user-approval gates before declaring the slice complete.
+1. Implement customer UI over the session and order APIs.
+2. Add reproducible PostgreSQL-only Compose setup and restartable maintenance.
+3. Add notification/idempotency maintenance and recovery scenarios.
+4. Apply full-slice threat-model, integration, independent-review and user-approval gates before declaring the slice complete.
 
 ## Latest Report
 

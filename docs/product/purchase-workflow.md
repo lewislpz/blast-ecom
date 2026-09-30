@@ -1,6 +1,6 @@
 # Purchase Workflow
 
-Status: Accepted design under delegated authority; not implemented. Authority: [ADR-0013](../decisions/ADR-0013-initial-product-behavior.md), [ADR-0014](../decisions/ADR-0014-order-reservation-lifecycle.md).
+Status: Accepted design under delegated authority; order/reservation/payment domain operations and PostgreSQL transaction tests are implemented. Customer-facing HTTP endpoints, session/CSRF security, UI and notification delivery remain pending. Authority: [ADR-0013](../decisions/ADR-0013-initial-product-behavior.md), [ADR-0014](../decisions/ADR-0014-order-reservation-lifecycle.md).
 
 ## Product Baseline
 
@@ -33,17 +33,17 @@ Confirmed means payment simulation and stock consumption succeeded. It never mea
 
 ## Creation
 
-1. Authenticate/authorize customer, validate request and idempotency key.
+1. Domain services validate checkout values and scope the operation by user and idempotency key. HTTP authentication/authorization and key-header validation remain pending.
 2. Obtain the idempotency record/lock, then lock product rows and stock rows in sorted UUID order.
 3. Verify active products, expected unit prices sent by the client and available quantity. A price difference returns 409 PRICE_CHANGED and no order/reservation; the client refreshes and asks for renewed confirmation. Client prices are comparisons, never authority.
 4. Snapshot prices, SKU/title and address; calculate line and order totals exactly. Create awaiting_payment order, active reservations and increment reserved counters together.
-5. Set expires_at from database time plus configured 15 minutes and commit. Return 201 with the order.
+5. Set expires_at from PostgreSQL wall-clock time plus configured 15 minutes and commit. The domain operation returns 201 with a bounded order snapshot; the HTTP endpoint remains pending.
 
 Insufficient stock, invalid quantities or price conflict produces no partial order/reservation. A created order may later expire or be cancelled, so creation alone does not simulate payment.
 
 ## Payment Simulation
 
-The owner calls the explicit payment command. Under order/stock locks, check the deadline and terminal status first. Only awaiting_payment may create one payment attempt. Its result is selected by a server-side deterministic simulator (default success; failure injectable only by tests/trusted local configuration). Clients cannot send a payment result or card data.
+The owner-scoped domain operation resolves the explicit payment command. Under order/stock locks, it checks the deadline and terminal status first. Only awaiting_payment may create one payment attempt. Its result is selected by a server-side deterministic simulator (default success; failure injectable only by tests/trusted local configuration). Clients cannot send a payment result or card data. The HTTP endpoint is not implemented yet.
 
 - Success: Payments records succeeded, Inventory consumes reservations (decrement on_hand and reserved), Orders sets confirmed.
 - Failure: Payments records failed, Inventory releases reserved units, Orders sets failed.
@@ -55,7 +55,7 @@ The owner calls the explicit payment command. Under order/stock locks, check the
 
 Only the owner or an explicitly authorized staff command can cancel awaiting_payment before expires_at. Cancelled repeat returns current state with no additional release; confirmed/failed/expired cancellation is 409. When the deadline has already passed, the command atomically expires/releases the order and then returns 409 ORDER_EXPIRED.
 
-A maintenance command scans due orders every 60 seconds, one order transaction at a time, rechecking locked state. It may run concurrently safely. Delayed maintenance conservatively withholds availability until release; it never permits payment after expiry. Default reservation duration and cadence are provisional configuration, revisited after UX measurement.
+The domain exposes bounded expiry processing with one transaction per candidate order and rechecks locked state. The periodic maintenance command/cadence is task-6 work. Delayed maintenance conservatively withholds availability until release; it never permits payment after expiry. Default reservation duration and cadence are provisional configuration, revisited after UX measurement.
 
 ## Notification and Failure
 

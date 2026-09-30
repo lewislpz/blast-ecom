@@ -1,6 +1,6 @@
 # First Implementation Slice
 
-Status: Accepted target and acceptance criteria. The bounded implementation plan is approved and task task-1 is in progress; this specification alone is not verification evidence.
+Status: Accepted target and acceptance criteria. Tasks 1–4 are implemented and verified at the backend API/domain layer; browser and reproducible local database increments remain pending. This specification alone is not verification evidence.
 
 ## Outcome
 
@@ -9,9 +9,9 @@ A local simulated purchase journey: fictional catalog → registered login → o
 ## Ordered Increments
 
 1. Scaffold runtime/locks/config, custom user initial migration and real PostgreSQL connectivity; verify compatibility.
-2. Catalog and inventory models/services, admin permissions and concurrency tests.
-3. Order/reservation state machine, idempotency and payment simulator.
-4. Session/CSRF API and generated OpenAPI, with high-risk security review before integration acceptance.
+2. Catalog and inventory models/services, admin permissions and PostgreSQL integration tests (implemented and verified; broader purchase concurrency cases remain pending).
+3. Order/reservation state machine, idempotency and payment simulator (implemented and PostgreSQL-tested; customer HTTP routes are task 4).
+4. Session/CSRF API, owner-scoped order endpoints and generated OpenAPI security contract; independent/full-slice high-risk gates remain required.
 5. Customer React journey and generated types.
 6. Restartable maintenance, audit/diagnostics, integration/E2E checks and updated docs.
 

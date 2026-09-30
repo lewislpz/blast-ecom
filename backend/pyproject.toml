@@ -6,12 +6,14 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "Django>=5.2.17,<5.3",
     "djangorestframework>=3.16,<3.17",
+    "drf-spectacular>=0.28,<1",
     "psycopg[binary]>=3.2,<4",
 ]
 
 [dependency-groups]
 dev = [
     "django-stubs[compatible-mypy]>=5.2,<6",
+    "djangorestframework-stubs[compatible-mypy]>=3.16,<3.17",
     "mypy>=1.15,<2",
     "pytest>=8.3,<9",
     "pytest-django>=4.11,<5",

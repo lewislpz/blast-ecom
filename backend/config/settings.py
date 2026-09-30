@@ -24,10 +24,18 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
+    "modules.common.apps.CommonConfig",
     "modules.users.apps.UsersConfig",
+    "modules.products.apps.ProductsConfig",
+    "modules.inventory.apps.InventoryConfig",
+    "modules.orders.apps.OrdersConfig",
+    "modules.payments.apps.PaymentsConfig",
+    "modules.notifications.apps.NotificationsConfig",
 ]
 
 MIDDLEWARE = [
+    "modules.common.middleware.RequestIdMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -35,6 +43,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "modules.common.middleware.ApiRequestSizeLimitMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -70,9 +79,29 @@ DATABASES = {
 }
 
 AUTH_USER_MODEL = "users.User"
+CSRF_FAILURE_VIEW = "modules.common.api_errors.csrf_failure"
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "modules.common.api_errors.problem_detail_exception_handler",
+}
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Blast Ecom API",
+    "DESCRIPTION": "Local simulated commerce API. Real payments and sales are not supported.",
+    "VERSION": "0.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 12},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -86,8 +115,11 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 12 * 60 * 60
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = True
+DATA_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

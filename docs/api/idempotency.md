@@ -1,6 +1,6 @@
 # Idempotency
 
-Status: Accepted design, not implemented. Applies to order creation, payment and cancellation.
+Status: Scoped PostgreSQL records and transactional domain-operation replay are implemented and tested. HTTP header parsing, API error mapping, authentication and CSRF enforcement remain pending in the API/security increment. Applies to order creation, payment and cancellation.
 
 ## Key and Scope
 
@@ -10,15 +10,15 @@ The frontend creates a key once per user action and retains it across retries of
 
 ## Atomic Processing
 
-Insert or lock the scoped IdempotencyRecord within the operation transaction before business locks. Handle a competing unique insert with a savepoint/reselect (not further queries inside a broken transaction). Same key/fingerprint waits for the committed result and replays stored status/body. Different fingerprint returns 409 IDEMPOTENCY_CONFLICT.
+Insert or lock the scoped IdempotencyRecord within the operation transaction before business locks. Handle a competing unique insert with a savepoint/reselect (not further queries inside a broken transaction). Same key/fingerprint waits for the committed result and replays stored status/body. Different fingerprint returns 409 IDEMPOTENCY_CONFLICT. These behaviors are implemented in the domain operation helper; HTTP contract translation is not.
 
-Business writes and stored successful/domain-conflict result commit together. Unexpected failure rolls back both; retry with the same key can execute again safely. Authentication, CSRF and syntax validation failures happen before key creation and are not cached. Existing-resource authorization is rechecked before replay. Do not recreate a cancelled/expired order just because a create response is replayed.
+Business writes and stored successful/domain-conflict result commit together. Unexpected failure rolls back both; retry with the same key can execute again safely. Authentication, CSRF and syntax validation failures happen before key creation and are not cached; transport enforcement remains pending. Existing-resource ownership is rechecked before a stored payment/cancel result is replayed. Do not recreate a cancelled/expired order just because a create response is replayed.
 
 Payment failure is a committed 200 domain result. Expiry detected during payment/cancel is a committed expiry/release with stored 409 ORDER_EXPIRED, not an exception that accidentally rolls the release back.
 
 ## Lifetime and Races
 
-Retain completed records at least 24 hours as an explicit provisional retry window. Keys are opaque references and fingerprints/results may contain personal data: restrict access, never log bodies, delete completed expired records through maintenance. Cleanup locks the record and rechecks expiry before removal. After retention, reuse may create a new operation; clients must never intentionally reuse old keys.
+Retain completed records at least 24 hours as an explicit provisional retry window. Keys are opaque references and fingerprints/results may contain personal data: restrict access, never log bodies, delete completed expired records through maintenance. Cleanup is not implemented yet; when added, it must lock the record and recheck expiry before removal. After retention, reuse may create a new operation; clients must never intentionally reuse old keys.
 
 Order-level terminal state and one-payment-attempt constraints still prevent duplicate payment effects even with different keys. Creating a genuinely new key can create another order; the UI must prevent accidental double submission and show the existing order after an uncertain response.
 

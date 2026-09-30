@@ -1,6 +1,6 @@
 # Security Baseline
 
-Status: Accepted design, not implemented or audited runtime. [ADR-0016](../decisions/ADR-0016-identity-and-administration.md).
+Status: Accepted security design with catalog/admin controls and initial customer session/CSRF/order API controls implemented and targeted-tested. Independent review and full-slice high-risk gates remain pending. [ADR-0016](../decisions/ADR-0016-identity-and-administration.md).
 
 ## Identity
 
@@ -8,15 +8,15 @@ Custom AbstractUser-based user from initial migration, username removed in favor
 
 Use Django's password hashing API/default supported PBKDF2 configuration and built-in common-password, similarity and numeric validators, with a 12-character minimum and 128-character input maximum. Never store/log plaintext passwords or implement cryptography. Exact hasher work factors track the selected patched Django release.
 
-Local registration creates a customer only; role/staff flags are not writable input. No public registration or real password-reset delivery until verified email ownership, abuse protection and provider choices are implemented. Local development reset uses Django token generator and a local mail sink visible only to the developer; generic responses prevent account enumeration. Reset expiry default one hour, configurable. Development sink may hold reset tokens and must never feed shared application logs.
+Registration creates a customer only and is runtime-gated to `DEBUG=true`; role/staff flags are not writable input. There is no password-reset endpoint or delivery flow. No public registration or password reset until verified email ownership, abuse protection and provider choices are implemented.
 
 ## Sessions and Origin
 
 Database-backed Django sessions; cookie HttpOnly, SameSite=Lax and Secure for HTTPS deployments. No JWT or localStorage credentials. Same-origin frontend/API/admin in deployed design; local Vite proxy handles /api and /admin with /static proxy for Django admin assets. Do not enable permissive credentialed CORS.
 
-Customer sessions expire after 12 hours; staff after one hour, configured at login, with no indefinite sliding extension. These are provisional policy defaults. Rotate session on login, flush on logout, invalidate on password reset/change using Django's supported mechanisms and tests. Inactive users cannot authenticate.
+Customer sessions expire after 12 hours; staff after one hour, configured at login, with no indefinite sliding extension. These are provisional policy defaults. Django rotates session on login and logout flushes it. Password reset/change invalidation is not implemented because those flows do not exist. Inactive users cannot authenticate.
 
-CSRF token bootstrap endpoint, CSRF header for unsafe requests, explicit CSRF enforcement on registration/login/password reset as well as authenticated mutations. DRF SessionAuthentication alone does not protect anonymous login views. Staff authorization and CSRF apply to admin/custom admin actions too.
+CSRF token bootstrap endpoint, `X-CSRFToken` header for unsafe requests, and explicit CSRF enforcement on local registration/login as well as authenticated mutations/logout. DRF SessionAuthentication alone does not protect anonymous login views. The CSRF cookie is HttpOnly; clients obtain the request token from bootstrap JSON and refresh it after session rotation. Staff authorization and CSRF apply to admin/custom admin actions too.
 
 ## Authorization
 
@@ -27,17 +27,17 @@ CSRF token bootstrap endpoint, CSRF header for unsafe requests, explicit CSRF en
 | Staff with named permissions | Catalog management, audited stock adjustment, order inspection and explicit pending-order cancellation | Arbitrary state edits, silent stock overwrite, granting own privileges |
 | Superuser | Bootstrap/break-glass only | Routine usage policy forbids treating it as normal staff |
 
-Use Django groups and explicit permissions, not is_staff alone. Staff admin access does not automatically grant broad customer API queries. Cross-owner lookups return 404. All list/detail/action paths enforce ownership, including idempotency replay. Same-user UUID knowledge does not grant access.
+Use Django groups and explicit permissions, not is_staff alone. The implemented catalog admin requires named model permissions; stock adjustment additionally requires `inventory.adjust_stock`. Superusers are deliberately excluded from routine catalog/inventory ModelAdmin operations. Order HTTP routes require an active non-staff customer and scope reads/mutations/replays to that owner. Same-user UUID knowledge does not grant access.
 
 ## Administration
 
-Django admin is the initial internal UI; React remains the customer UI. Read-only order/payment/reservation fields, no generic delete/bulk update for historical business data. Catalog writes and custom stock/cancellation actions call domain services and append sanitized audit entries. Fail/rollback an administrative mutation if required audit persistence fails.
+Django admin is the initial internal UI; React remains the customer UI. Implemented catalog records can be managed only with explicit add/change/view permissions and cannot be deleted through admin. Stock counters are read-only in admin; stock changes use the transactional adjustment form and append actor, reason and delta. Order/payment/reservation fields and custom order actions remain planned. The stock counter and its adjustment audit record commit or roll back together.
 
 ## Secrets, Inputs and Exposure
 
 Secrets/config via environment, ignored local env files and example placeholders only. Backend fails fast for missing required configuration. Never expose secrets through VITE_ variables. DEBUG disabled outside local tests; allowlisted hosts and trusted origins; parameterized ORM queries and plain-text descriptions (no arbitrary HTML).
 
-Local DRF throttles are defense-in-depth only, not a distributed brute-force control. Before public exposure, choose and validate shared auth throttling, staff MFA/access restrictions, real mail/verification, TLS and security headers (including a CSP matching built assets). No claim that those controls already exist.
+No authentication throttling is currently configured. Before public exposure, choose and validate shared auth throttling, staff MFA/access restrictions, real mail/verification, TLS and security headers (including a CSP matching built assets). No claim that those controls already exist.
 
 ## Sources
 

@@ -1,6 +1,6 @@
 # Tooling and Compatibility Baseline
 
-Status: The first scaffold and dependency locks are implemented and verified on macOS arm64. PostgreSQL runtime compatibility is not yet verified because no PostgreSQL server is available in the development environment. [ADR-0019](../decisions/ADR-0019-tooling-and-local-development.md) remains the selected baseline.
+Status: The first scaffold and dependency locks are implemented and verified on macOS arm64. PostgreSQL 17 runtime connectivity and the initial migration are verified using Docker. [ADR-0019](../decisions/ADR-0019-tooling-and-local-development.md) remains the selected baseline.
 
 ## Resolved Runtime and Package Versions
 
@@ -8,15 +8,18 @@ Status: The first scaffold and dependency locks are implemented and verified on 
 |---|---:|---|
 | Python | 3.13.15 | Backend environment created and used for checks |
 | Django | 5.2.17 | Resolved in `backend/uv.lock`; system check passed |
-| Django REST framework | 3.16.1 | Resolved in `backend/uv.lock`; installed, no API behavior yet |
-| psycopg | 3.3.6 | Resolved in `backend/uv.lock`; server connection not verified |
-| PostgreSQL | 17 (major line) | Not installed/launched; patch image remains for Compose increment |
+| Django REST framework | 3.16.1 | Resolved and exercised by PostgreSQL-backed catalog API tests |
+| psycopg | 3.3.6 | PostgreSQL 17.11 connection and migrations verified |
+| PostgreSQL | 17.11 (major line 17) | Fresh migration and connectivity verified in a disposable Docker container; persistent Compose setup remains planned |
+| Docker Engine / Compose | 29.8.1 / 5.5.1 | Installed and running; CLI required an explicit Docker Desktop path in the Codex shell |
 | Node.js | 24.21.0 | Official macOS arm64 archive checksum verified; used for frontend checks |
 | npm | 11.19.0 | Shipped with Node 24.21.0; `npm ci` passed |
 | React / React DOM | 19.3.0 | Locked in `frontend/package-lock.json` |
 | Vite | 8.3.1 | Locked; production build passed |
 | TypeScript | 6.0.3 | Locked; type check passed |
 | Vitest | 5.0.2 | Locked; component smoke test passed |
+| drf-spectacular | 0.30.0 | Locked; OpenAPI generation and validation pass |
+| djangorestframework-stubs | 3.16.9 | Locked dev dependency; mypy validates DRF code |
 
 Django 5.2.18 was not available from the package index when the lock was generated; the compatible 5.2 LTS patch 5.2.17 was selected rather than relaxing the accepted Django line. The selected DRF 3.16 minor resolves to 3.16.1. These are package resolution facts, not a claim that a newer minor would be incompatible.
 
@@ -28,13 +31,14 @@ The generated lockfiles pin transitive artifacts. `uv` 0.12.19 and Node/npm were
 |---|---|---|
 | uv + `backend/uv.lock` | Python environment and dependency locking | Implemented; `uv sync --locked` resolved |
 | npm + `frontend/package-lock.json` | Reproducible frontend install | Implemented; `npm ci` passed |
-| psycopg 3 | PostgreSQL driver | Installed in lock; connection pending database setup |
+| psycopg 3 | PostgreSQL driver | PostgreSQL 17 connection and migration apply verified |
 | Ruff | Python lint and formatting | Implemented; checks passed |
-| mypy + django-stubs | Backend type checks | Implemented; strict check passed |
-| pytest + pytest-django | Backend unit/integration/API tests | Implemented; two pure unit cases passed |
+| mypy + Django/DRF stubs | Backend type checks | Implemented; strict check passed |
+| pytest + pytest-django | Backend unit/integration/API tests | Implemented; catalog/inventory PostgreSQL model/API/admin tests pass |
 | TypeScript strict + ESLint + Prettier | Frontend typing, lint and formatting | Implemented; checks passed |
 | Vitest + React Testing Library | UI/component behavior | Implemented; one placeholder render test passed |
-| drf-spectacular + openapi-typescript | API schema and generated client types | Planned for API increment; not installed yet |
+| drf-spectacular | API schema generation | Implemented for catalog; reviewed schema at `backend/openapi.yaml` |
+| openapi-typescript | Generated frontend API types | Planned with customer frontend API integration |
 | Playwright | End-to-end browser journeys | Planned for later slice; not installed yet |
 
 Only add a tool when its implementation slice uses it. No generic shared package, Nx/Turborepo, Redux, Redis, RabbitMQ or application container is introduced here.
@@ -47,6 +51,7 @@ GitHub Flow remains the accepted future convention: `main`, short-lived changes,
 
 - [Django supported versions](https://www.djangoproject.com/download/) and [Python compatibility for Django 5.2](https://docs.djangoproject.com/en/5.2/faq/install/).
 - [Django REST framework 3.16 compatibility](https://www.django-rest-framework.org/community/3.16-announcement/).
+- [drf-spectacular supported Django/DRF versions](https://drf-spectacular.readthedocs.io/en/stable/readme.html).
 - [Node.js release schedule](https://nodejs.org/en/about/previous-releases) and [v24.21.0 archive](https://nodejs.org/dist/v24.21.0/).
 - [Vite requirements](https://vite.dev/guide/) and [uv lock/sync behavior](https://docs.astral.sh/uv/concepts/projects/sync/).
 

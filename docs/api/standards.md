@@ -1,6 +1,6 @@
 # HTTP API Standards
 
-Status: Accepted design; no endpoint or OpenAPI artifact exists. [ADR-0017](../decisions/ADR-0017-http-api-contract.md).
+Status: Catalog read endpoints, same-origin session/CSRF account endpoints, and owner-scoped order endpoints are implemented. Registration is restricted to local DEBUG mode; password reset and public-account protections are deferred. [ADR-0017](../decisions/ADR-0017-http-api-contract.md).
 
 ## Contract
 
@@ -11,15 +11,13 @@ JSON under /api/v1/, lower-case plural resources, snake_case fields, UUID string
 | Method | Path | Access | Success |
 |---|---|---|---|
 | GET | /api/v1/auth/csrf/ | Public | 200 token/bootstrap; no-cache |
-| POST | /api/v1/auth/register/ | Local registration; CSRF | 201 customer summary |
-| POST | /api/v1/auth/login/ | Public; CSRF | 200 identity and session cookie |
-| POST | /api/v1/auth/logout/ | Session; CSRF | 204 |
+| POST | /api/v1/auth/register/ | Local DEBUG only; CSRF | 201 customer summary; 404 otherwise |
+| POST | /api/v1/auth/login/ | Public; CSRF | 200 identity and rotated session cookie |
+| POST | /api/v1/auth/logout/ | Session; CSRF | 204 and session revocation |
 | GET | /api/v1/auth/me/ | Active session | 200 own identity |
-| POST | /api/v1/auth/password-reset/ | Local mail flow; CSRF | 202 generic response |
-| POST | /api/v1/auth/password-reset/confirm/ | Valid Django reset token; CSRF | 204 |
-| GET | /api/v1/categories/ | Public, active only | 200 paginated |
-| GET | /api/v1/products/ | Public, active only | 200 paginated |
-| GET | /api/v1/products/{id}/ | Public, active only | 200 |
+| GET | /api/v1/categories/ | Public, active only (implemented) | 200 paginated |
+| GET | /api/v1/products/ | Public, active only (implemented) | 200 paginated; filters: category, ordering; includes `in_stock` boolean |
+| GET | /api/v1/products/{id}/ | Public, active only (implemented) | 200 |
 | POST | /api/v1/orders/ | Customer; CSRF + idempotency | 201 initial order |
 | GET | /api/v1/orders/ | Customer, own records | 200 paginated |
 | GET | /api/v1/orders/{id}/ | Owner | 200 current order |
@@ -34,7 +32,9 @@ Health endpoints sit outside the business API version. Admin operations use Djan
 
 items is a list of product_id, quantity and expected_unit_price. delivery_address carries the documented address fields. The backend determines owner, price, currency, states and totals. Reject unknown fields; reject changed price with 409 rather than silently charging a new price. Never accept card numbers. Payment/cancel bodies are empty; simulator outcomes are not client parameters.
 
-Responses include id, state, items with snapshots, subtotal, shipping_total, total, currency, expires_at and timestamps. Address is returned only to owner/authorized staff. Payment response reports succeeded or failed as a domain outcome (200), not a server error. Do not include internal permission flags or hashes in customer summaries.
+Unsafe session and customer operations require the `X-CSRFToken` header, obtained from the no-store CSRF bootstrap endpoint. The CSRF cookie is HttpOnly; clients use the token returned in the bootstrap JSON. Fetch a fresh token after login/logout rotation. Login failures use one generic response for unknown email, wrong password and staff accounts. Customer sessions expire after 12 hours; staff sessions after one hour. Registration is available only with `DEBUG=true` and is not a public registration mechanism. Password reset endpoints do not exist.
+
+Order creation and state-changing actions require UUIDv4 `Idempotency-Key`; keys are scoped by customer and operation. Responses include id, state, items with snapshots, subtotal, shipping_total, total, currency, expires_at and timestamps. Address is returned only in the owner's detail response. Payment response reports succeeded or failed as a domain outcome (200), not a server error. Do not include internal permission flags or hashes in customer summaries.
 
 ## Lists
 
@@ -43,6 +43,8 @@ Page-number pagination, page_size default 20 and max 100, count/next/previous/re
 ## Errors
 
 Use application/problem+json per RFC 9457: type (about:blank initially), title, status, safe detail, code, request_id and optional field_errors [{field, code, message}]. Never include stack traces or SQL. Success uses resource bodies, not a global success wrapper.
+
+The implemented DRF exception handler emits this media type for handled API errors, creates a server-side request ID and maps validation errors to `field_errors`. A 64 KiB request body cap applies to `/api/v1/`. The generated schema at `backend/openapi.yaml` documents CSRF and idempotency headers; regenerate and validate it with `uv run python manage.py spectacular --file openapi.yaml --validate` from `backend/`.
 
 400 malformed/invalid input; 403 unauthenticated or forbidden session requests (consistent with DRF SessionAuthentication), including CSRF; 404 absent or inaccessible resources; 409 state/stock/price/idempotency conflict; 429 throttled; 503 temporary dependency failure. Distinguish AUTH_REQUIRED from PERMISSION_DENIED and CSRF_FAILED by code. API clients use code, not English prose. Infrastructure errors get a server-generated request_id in X-Request-ID; inbound arbitrary IDs are not trusted.
 

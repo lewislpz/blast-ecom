@@ -4,30 +4,37 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 
 ## Current Status
 
-**Phase 1 — Core Domain & Application Foundation, increment 1 in progress.** Django and React scaffolds, lockfiles, quality checks and the custom UUID user model's initial migration are present. There is no catalog, checkout, PostgreSQL Compose service or functional authentication yet. The migration has not been applied to PostgreSQL.
+**Phase 1 — Core Domain & Application Foundation.** Runtime scaffold, catalog/inventory, transactional order domain, session/CSRF flows and owner-scoped customer order APIs are implemented and verified against a temporary PostgreSQL 17.11 Docker database. The browser journey, notification delivery and persistent PostgreSQL Compose setup are not implemented. This is a local simulation, not production-ready commerce.
 
 ## Implemented
 
 - Python 3.13 / Django 5.2 / Django REST Framework project skeleton with a custom UUID-keyed user model and normalized unique email.
 - React 19 / TypeScript / Vite scaffold with a Spanish placeholder page.
-- Locked backend and frontend dependencies, lint/type/test/build commands, and one small smoke test per application.
+- Read-only public active catalog API, category filtering, deterministic product sorting, pagination and stock availability indicator.
+- Staff-permission-gated Django Admin catalog management and append-only audited stock adjustments that respect reserved units.
+- Atomic order creation with current-price checks, address/product snapshots, stock reservations, scoped idempotency, payment simulation, cancellation and expiry transitions. PostgreSQL tests cover contention and rollback.
+- Durable append-only audit entries and transactional notification intents for order lifecycle transitions.
+- RFC 9457 Problem Details for DRF errors; OpenAPI generation and validation for the catalog contract.
+- Locked backend and frontend dependencies, lint/type/test/build commands, PostgreSQL-backed backend tests and frontend scaffold smoke test.
+- Same-origin session authentication with CSRF bootstrap, login/logout/current-user; local registration is available only when `DEBUG=true`.
+- Owner-scoped order list/create/detail/payment-simulation/cancel APIs, idempotency headers, strict request validation, 64 KiB request cap, Problem Details and generated OpenAPI.
 
 ## Planned
 
-Registered checkout, catalog and stock management, order reservations, simulated payment, own order history, local PostgreSQL Compose and restartable maintenance. Payments, taxes, shipping, and notifications remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
+Customer order history/checkout UI, local PostgreSQL Compose, notification-delivery simulation and restartable maintenance. Password reset, email verification, shared authentication abuse controls and staff MFA are not implemented; public account use is not ready. Payments, taxes, shipping, and notifications remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
 
 ## Architecture and Stack
 
 - Modular monolith in a monorepo with six logical domain areas; they are not six deployed services.
-- Django ORM and migrations, DRF APIs, PostgreSQL, and React SPA.
-- Database sessions and same-origin CSRF are selected for the eventual customer flow; they are not implemented yet.
+- Django ORM and migrations, DRF APIs, `drf-spectacular` OpenAPI, PostgreSQL, and React SPA.
+- Database sessions and same-origin CSRF are implemented for local API flows; public deployment controls remain incomplete.
 - UUIDv4 domain IDs, exact EUR decimal values and immutable purchase snapshots are the accepted data conventions.
 
 See [ADRs](docs/decisions/README.md), [architecture](docs/architecture/overview.md), [current project status](docs/project-status.md) and [resolved tool versions](docs/development/tooling.md).
 
 ## Local Checks
 
-The [local development guide](docs/development/local-development.md) lists prerequisites and commands. PostgreSQL is not configured locally yet; the full Django workflow is therefore not runnable until the Compose increment is completed.
+The [local development guide](docs/development/local-development.md) lists prerequisites and commands. PostgreSQL was validated with a temporary container; a persistent, reproducible Compose setup is still planned, so the documented full local workflow is not yet available.
 
 ## Documentation
 
