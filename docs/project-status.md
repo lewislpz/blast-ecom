@@ -4,7 +4,7 @@ Updated: 2026-09-30
 
 ## Current Phase
 
-Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, session/CSRF authentication, owner-scoped order APIs, customer browser journey and PostgreSQL-only local Compose workflow are implemented. Task-6 integration verification and broader task-7 acceptance remain.
+Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, session/CSRF authentication, owner-scoped order APIs, customer browser journey and PostgreSQL-only local Compose workflow are implemented. Broader task-7 acceptance and high-risk security gates remain.
 
 ## Current Objective
 
@@ -39,7 +39,7 @@ Password reset/email verification, shared auth abuse controls, notification deli
 
 ## In Progress
 
-Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implemented and verified; independent review and explicit approval gates remain open. Task task-5 — browser journey: implemented, verified, checkpointed and committed. Task task-6 — local PostgreSQL and maintenance: implemented, verified and checkpointed; commit pending.
+Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implemented and verified; independent review and explicit approval gates remain open. Task task-5 — browser journey: implemented, verified, checkpointed and committed. Task task-6 — local PostgreSQL and maintenance: implemented, verified, checkpointed and committed locally.
 
 ## Pending Decisions
 
@@ -59,7 +59,7 @@ Task-4 independent security review and explicit user approval are still required
 
 ## Known Issues
 
-Git is initialized on `main` and tracks `origin/main`; the core API and verified browser slices are committed locally. The current PostgreSQL/maintenance increment is uncommitted. Notification delivery and deployment remain unimplemented.
+Git is initialized on `main` and tracks `origin/main`; the core API, browser and local PostgreSQL/maintenance increments are committed locally and have not been pushed. Notification delivery and deployment remain unimplemented.
 
 ## Technical Debt
 
@@ -85,10 +85,9 @@ Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles
 
 ## Next Steps
 
-1. Commit the verified task-6 implementation locally and bind the resulting state.
-2. Continue task-7 end-to-end acceptance and reconcile documentation.
-3. Obtain task-4 independent review and explicit user approval; retain these as blockers until recorded.
-4. Apply full-slice threat-model, integration and review gates before declaring the slice complete.
+1. Continue task-7 whole-slice acceptance and reconcile documentation.
+2. Obtain task-4 independent review and explicit user approval; retain these as blockers until recorded.
+3. Apply full-slice threat-model, integration and review gates before declaring the slice complete.
 
 ## Latest Report
 
