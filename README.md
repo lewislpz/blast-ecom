@@ -4,7 +4,7 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 
 ## Current Status
 
-**Phase 1 — Core Domain & Application Foundation.** Runtime scaffold, catalog/inventory, transactional order domain, session/CSRF APIs and customer browser journey are implemented and locally verified against PostgreSQL. Persistent PostgreSQL Compose setup and notification delivery remain pending. This is a local simulation, not production-ready commerce.
+**Phase 1 — Core Domain & Application Foundation.** Runtime scaffold, catalog/inventory, transactional order domain, session/CSRF APIs, customer browser journey and local PostgreSQL Compose/maintenance workflow are implemented and locally verified. Notification delivery remains simulated. This is not production-ready commerce.
 
 ## Implemented
 
@@ -18,10 +18,11 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 - Locked backend and frontend dependencies, generated OpenAPI TypeScript contracts, lint/type/test/build commands, PostgreSQL-backed backend tests, frontend behavior/API-client tests and browser E2E purchase coverage.
 - Same-origin session authentication with CSRF bootstrap, login/logout/current-user; local registration is available only when `DEBUG=true`.
 - Owner-scoped order list/create/detail/payment-simulation/cancel APIs, idempotency headers, strict request validation, 64 KiB request cap, Problem Details and generated OpenAPI.
+- PostgreSQL-only local Compose service, explicit Django migrations and idempotent fictional catalog seed, database readiness endpoint and restartable bounded expiry/notification-simulation/idempotency maintenance.
 
 ## Planned
 
-Local PostgreSQL Compose, notification-delivery simulation and restartable maintenance. Password reset, email verification, shared authentication abuse controls and staff MFA are not implemented; public account use is not ready. Payments, taxes, shipping, and notifications remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
+Password reset, email verification, shared authentication abuse controls and staff MFA are not implemented; public account use is not ready. Payments, taxes, shipping, and notifications remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
 
 ## Architecture and Stack
 
@@ -34,7 +35,7 @@ See [ADRs](docs/decisions/README.md), [architecture](docs/architecture/overview.
 
 ## Local Checks
 
-The [local development guide](docs/development/local-development.md) lists prerequisites and commands. PostgreSQL was validated with a temporary container; a persistent, reproducible Compose setup is still planned, so the documented full local workflow is not yet available.
+The [local development guide](docs/development/local-development.md) lists prerequisites and commands for PostgreSQL, Django, the frontend and maintenance process.
 
 ## Documentation
 

@@ -31,6 +31,20 @@ def database_now() -> datetime:
     return cast(datetime, value[0])
 
 
+def delete_expired_idempotency_records(*, limit: int = 100) -> int:
+    if not 1 <= limit <= 1000:
+        raise ValueError("Cleanup batch limit must be between 1 and 1000.")
+    expired_ids = list(
+        IdempotencyRecord.objects.filter(expires_at__lte=database_now())
+        .order_by("expires_at", "id")
+        .values_list("id", flat=True)[:limit]
+    )
+    if not expired_ids:
+        return 0
+    deleted, _ = IdempotencyRecord.objects.filter(id__in=expired_ids).delete()
+    return deleted
+
+
 def fingerprint(payload: Mapping[str, Any]) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
     return hashlib.sha256(encoded).hexdigest()

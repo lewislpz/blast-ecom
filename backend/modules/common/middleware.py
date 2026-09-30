@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from uuid import uuid4
 
+from django.db import OperationalError
 from django.http import HttpRequest, HttpResponse
 
 from modules.common.api_errors import problem_response
@@ -58,3 +59,23 @@ class ApiRequestSizeLimitMiddleware:
                         detail="The request body exceeds the 64 KiB limit.",
                     )
         return self.get_response(request)
+
+
+class DatabaseUnavailableMiddleware:
+    """Return a generic temporary-unavailable response for API database outages."""
+
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        return self.get_response(request)
+
+    def process_exception(self, request: HttpRequest, exception: Exception) -> HttpResponse | None:
+        if request.path.startswith("/api/") and isinstance(exception, OperationalError):
+            return problem_response(
+                request=request,
+                status=503,
+                code="SERVICE_UNAVAILABLE",
+                detail="The service is temporarily unavailable.",
+            )
+        return None
