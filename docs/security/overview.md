@@ -1,6 +1,6 @@
 # Security Baseline
 
-Status: Accepted security design with catalog/admin controls and initial customer session/CSRF/order API controls implemented and targeted-tested. Independent review and full-slice high-risk gates remain pending. [ADR-0016](../decisions/ADR-0016-identity-and-administration.md).
+Status: Accepted security design with catalog/admin controls and initial customer session/CSRF/order API controls implemented and targeted-tested. Group administration is restricted to active staff superusers as a break-glass path. [ADR-0016](../decisions/ADR-0016-identity-and-administration.md), [ADR-0023](../decisions/ADR-0023-break-glass-group-administration.md).
 
 ## Identity
 
@@ -28,6 +28,8 @@ CSRF token bootstrap endpoint, `X-CSRFToken` header for unsafe requests, and exp
 | Superuser | Bootstrap/break-glass only | Routine usage policy forbids treating it as normal staff |
 
 Use Django groups and explicit permissions, not is_staff alone. The implemented catalog admin requires named model permissions; stock adjustment additionally requires `inventory.adjust_stock`. Superusers are deliberately excluded from routine catalog/inventory ModelAdmin operations. Order HTTP routes require an active non-staff customer and scope reads/mutations/replays to that owner. Same-user UUID knowledge does not grant access.
+
+The built-in Group admin is replaced with a break-glass-only admin: every Group admin action requires an active staff superuser. Ordinary staff must not be able to edit a group's permissions, including a group they belong to. Regression tests cover both denial for ordinary staff and access for the break-glass superuser.
 
 ## Administration
 
