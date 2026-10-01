@@ -4,11 +4,11 @@ Updated: 2026-10-01
 
 ## Current Phase
 
-Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, session/CSRF authentication, owner-scoped order APIs, customer browser journey, PostgreSQL-only local Compose workflow and application-level authentication attempt limits are implemented. The auth-control increment is undergoing required independent review and final gate closeout; hosted/public readiness is explicitly out of scope.
+Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, session/CSRF authentication, owner-scoped order APIs, customer browser journey, PostgreSQL-only local Compose workflow and application-level authentication attempt limits are implemented, independently reviewed and locally committed. Hosted/public readiness is explicitly out of scope.
 
 ## Current Objective
 
-Close the PostgreSQL-backed authentication abuse-control increment with independent security review, refreshed evidence and a local commit; then continue the remaining account-recovery and notification-development work without treating public/production readiness as complete.
+Continue local-development account recovery/email and notification workflows, followed by verified local backup/restore and a reproducible application deployment path. Keep third-party email delivery and hosted/public production outside scope until the required external inputs and controls exist.
 
 ## Completed
 
@@ -36,19 +36,20 @@ Close the PostgreSQL-backed authentication abuse-control increment with independ
 - PostgreSQL-only Compose service uses a loopback-bound port, explicit health check and persistent named volume; fresh migrations, safe fictional seed, and bounded maintenance commands are implemented.
 - Database readiness performs a live query; API database connectivity failures return a generic 503. Seed and maintenance commands require local DEBUG configuration; seeding additionally requires an explicit environment opt-in.
 - PostgreSQL-backed HMAC-pseudonymous authentication attempt limits cover customer login, DEBUG-only registration and Django Admin login. Fixed-window counters are atomic, bounded at `limit + 1`, cleaned up by bounded local maintenance and tested for concurrency, CSRF ordering, privacy and failure behavior.
+- Authentication abuse-control increment was independently reviewed with no blocking findings; the complete backend suite passes (90 PostgreSQL tests), focused auth/maintenance integration passes (19 tests), frontend checks pass and commit `d4d2419` records the implementation.
 
 The reviewed Group-admin privilege-escalation path is closed in the current implementation: ordinary staff cannot access Group administration, while active staff superusers retain break-glass access. Password reset/email verification and external notification delivery remain unimplemented; current auth attempt limits are application-level only. Backups and hosted deployment remain unimplemented. API registration is local DEBUG-only; no public-account or production readiness is claimed.
 
 ## In Progress
 
-Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implemented, reviewed, remediated and verified. Task task-5 — browser journey: implemented, verified, checkpointed and committed locally. Task task-6 — local PostgreSQL and maintenance: implemented, verified, checkpointed and committed locally. Task task-7 — whole-slice acceptance: complete for the previously accepted local scope. Current workspace task-1 — auth abuse controls: implemented and tested; independent review, final gates and commit are in progress.
+Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implemented, reviewed, remediated and verified. Task task-5 — browser journey: implemented, verified, checkpointed and committed locally. Task task-6 — local PostgreSQL and maintenance: implemented, verified, checkpointed and committed locally. Task task-7 — whole-slice acceptance: complete for the previously accepted local scope. Auth abuse-control increment: independently reviewed, fully verified and committed locally as `d4d2419`.
 
 ## Pending Decisions
 
 See the [decision register](roadmap/decision-register.md) for complete trigger-based deferrals.
 
 - Implementation details: remaining API contract details and empirical query plans.
-- Before public accounts: real email verification/reset, trusted proxy parsing, edge/shared abuse controls and monitoring, staff MFA/access restrictions and privacy retention.
+- Before public accounts: verified real email delivery for account recovery/ownership, trusted proxy parsing, edge/shared abuse controls and monitoring, staff MFA/access restrictions and privacy retention. Development email workflows do not satisfy these production gates.
 - Before real sales: markets/jurisdiction, taxes/invoicing, actual shipping charges/coverage and fulfillment.
 - Before hosted operations: environments/provider/budget, secrets/TLS/networking, backup/restore, RPO/RTO, SLOs and actionable monitoring.
 - Conditional: broker/cache, external payments/events, tracing, Kubernetes/Helm/GitOps/Terraform and scaling.
@@ -87,9 +88,10 @@ Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles
 
 ## Next Steps
 
-1. Complete independent review, gate evidence, binding and local commit for authentication attempt limits.
-2. Continue account recovery/email and notification development with a local-only delivery path unless a production provider is explicitly available.
-3. Keep hosted deployment blocked until provider/budget, public-account controls and production recovery/operations are designed and verified.
+1. Implement and test local account recovery/email flows using Django's development console email backend; do not claim mailbox ownership verification from console output alone.
+2. Complete local notification processing and verify that a failed/restarted worker preserves intent safely.
+3. Add explicit local PostgreSQL backup/restore commands and test restoring into a separate disposable database.
+4. Make the application reproducibly runnable as local containers before evaluating hosted deployment.
 
 ## Latest Report
 
