@@ -1,21 +1,21 @@
 # Roadmap
 
-Status: Proposed sequencing; Phase 0 is complete and the local first slice is implemented. Phase 1 — Core Domain & Application Foundation — remains current until final review, evidence reconciliation and local commits for the development-completion increment. See the [decision report](../reports/2026-09-28-phase0-decisions.md) and [first slice](../development/first-slice.md).
+Status: The local first slice and Compose platform are complete; Phase 3 — Testing & Quality / pre-production hardening — is current. No public or hosted production operation is claimed. See the [decision report](../reports/2026-09-28-phase0-decisions.md) and [first slice](../development/first-slice.md).
 
 | Phase | Intended outcome | Entry condition |
 |---|---|---|
 | 0 — Product Definition & Architecture | Initial local scope, domain rules, security and tool baseline documented | Complete; 27 Accepted ADRs and one Superseded ADR |
-| 1 — Core Domain & Application Foundation | Tested local commerce journey and core abuse controls | Current phase; local recovery, notifications, backup/restore and app containers implemented; review and commits pending |
+| 1 — Core Domain & Application Foundation | Tested local commerce journey and core abuse controls | Complete for the documented local first slice; see project status and ADRs |
 | 2 — Local Platform | Reproducible local execution | Complete for local Compose API, frontend, PostgreSQL and maintenance workflow |
-| 3 — Testing & Quality | Behavior, contract and browser verification | Core checks implemented; continue as features evolve |
-| 4 — Continuous Integration | Automated agreed checks | Local checks are meaningful and stable |
+| 3 — Testing & Quality | Behavior, contract and browser verification | Current: extend quality/security checks for public-account and provider boundaries |
+| 4 — Continuous Integration | Automated agreed checks | Pending: implement PR checks before provider-backed production release |
 | 5 — Registry & Release Management | Versioned, reproducible artifacts | Packaging and release strategy selected |
-| 6 — Deployment Platform Evaluation | Suitable deployment and rollback | Application, local runtime and CI work |
+| 6 — Deployment Platform Evaluation | Suitable deployment and rollback | Application, production artifacts and CI work; no provider account/budget yet |
 | 7 — Continuous Delivery | Controlled promotion | Environment and deployment model selected |
-| 8 — Infrastructure as Code | Reproducible infrastructure | Hosting, state and ownership selected |
-| 9 — Observability | Answer operational questions | Workloads and failure modes understood |
-| 10 — Security Hardening | Validate and strengthen relevant controls | Architecture and threat model available |
-| 11 — Reliability & Operations | Tested recovery and actionable procedures | Persistent data and operated components |
+| 8 — Infrastructure as Code | Reproducible infrastructure | Hosting, state and ownership selected; no cloud resources provisioned |
+| 9 — Observability | Answer operational questions | Workloads and failure modes understood; no hosted telemetry deployed |
+| 10 — Security Hardening | Validate and strengthen relevant controls | Active prerequisite work: public account controls, provider boundaries and independent review |
+| 11 — Reliability & Operations | Tested recovery and actionable procedures | Hosted persistent data exists; backup/restore code and drills precede service-level claims |
 | 12 — Scaling & Performance | Evidence-driven capacity improvements | Workload scenarios and measurements |
 | 13 — Production Readiness | Explicit readiness review | Security, recovery, deployment and operation verified |
 

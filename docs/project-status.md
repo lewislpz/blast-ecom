@@ -4,11 +4,11 @@ Updated: 2026-10-01
 
 ## Current Phase
 
-Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, account/session APIs, browser journey, local notifications, PostgreSQL backup/restore and a four-service Compose development workflow are implemented. Hosted/public readiness is explicitly out of scope.
+Phase 3 — Testing & pre-production hardening. The local commerce slice and Compose platform are implemented and committed. This phase advances the application toward public accounts, provider-backed payments, hosted recovery, CI and a real deployment. No hosted production environment is claimed.
 
 ## Current Objective
 
-Local development completion is implemented and verified: account recovery/demo verification, restart-safe local notifications, PostgreSQL backup/restore and the reproducible containerized development path. Third-party email delivery and hosted/public production remain outside scope until required external inputs and controls exist.
+The local-development milestone is complete and verified. The current objective is to harden public account flows and progressively build/test the remaining external integration and operational layers. Live email delivery, payment settlement, hosted backups and public deployment require provider accounts, credentials, infrastructure and operational validation not present in this workspace; code can be prepared and sandbox-tested without claiming those external outcomes.
 
 ## Completed
 
@@ -16,7 +16,7 @@ Local development completion is implemented and verified: account recovery/demo 
 - ADR-0013 through ADR-0021: nine grouped decisions selected by Codex under explicit user delegation on 2026-09-28.
 - Product lifecycle, data model/locks, account/admin policy, API/idempotency, frontend, tooling, local runtime, testing, migrations and observability specifications.
 - Initial threat model, acceptance matrix, decision register and decision report.
-- Thirty-one Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
+- Twenty-seven Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
 - Backend and frontend dependency locks, checks and starter scaffolds.
 - Custom UUID-keyed Django user model with normalized unique email and generated initial migration.
 - Fresh PostgreSQL 17.11 connectivity verified through a temporary Docker container; all migrations, including `users.0001_initial`, applied successfully.
@@ -46,27 +46,27 @@ The reviewed Group-admin privilege-escalation path is closed in the current impl
 
 ## In Progress
 
-Local-development completion plan: implementation, documentation, threat-model, tests, Compose/browser integration, independent security review and user-approval evidence are complete. The full backend suite passes (117 tests); frontend quality checks, schema/type synchronization and three Chromium E2E tests pass. The development Compose stack is running for manual exploration at `http://127.0.0.1:5173`. Local commit `4697943` records the implementation; no push or hosted deployment was performed or needed for this scope.
+Production-readiness hardening is in progress. The first slice reconciles readiness documentation and implements production account/email/proxy controls. Provider-backed payment, hosted backup/DR, CI and deployment/operations follow as separately verified increments. The application is not ready for public or real-customer use.
 
 ## Pending Decisions
 
 See the [decision register](roadmap/decision-register.md) for complete trigger-based deferrals.
 
 - Implementation details: remaining API contract details and empirical query plans.
-- Before public accounts: verified real email delivery for account recovery/ownership, trusted proxy parsing, edge/shared abuse controls and monitoring, staff MFA/access restrictions and privacy retention. Development email workflows do not satisfy these production gates.
+- Before public accounts: production-safe settings, allow-listed proxy parsing, cross-source identity abuse controls, verified mailbox ownership and delivery reliability, shared/edge volumetric controls, staff MFA/access restrictions and privacy retention. Development email workflows do not satisfy these production gates.
 - Before real sales: markets/jurisdiction, taxes/invoicing, actual shipping charges/coverage and fulfillment.
-- Before hosted operations: environments/provider/budget, secrets/TLS/networking, backup/restore, RPO/RTO, SLOs and actionable monitoring.
+- Before hosted operations: provider/account/credentials, secrets/TLS/networking, encrypted/versioned backup and restore drill, agreed RPO/RTO, SLOs and actionable monitoring. Provider-independent code and disposable-service tests can be built before an account is available.
 - Conditional: broker/cache, external payments/events, tracing, Kubernetes/Helm/GitOps/Terraform and scaling.
 
-These are deliberately deferred; Redis/RabbitMQ or Kubernetes are not required next steps.
+These are active readiness work items, not claims that the capability exists. Redis/RabbitMQ or Kubernetes are not mandatory next steps; adoption must still be justified by deployment needs.
 
 ## Blockers
 
-No known blocker for the documented local-development scope. Shared/public deployment and real-customer data remain blocked by the launch gates above.
+No blocker for local development. Real public operation still requires provider credentials, hosted infrastructure, external security/operational validation and commercial requirements. These do not prevent provider-independent application work or sandbox tests.
 
 ## Known Issues
 
-Git is initialized on `main` and tracks `origin/main`; recovery/notification/backup/container changes are committed locally and have not been pushed. External notification delivery, hosted backup/restore and production deployment remain unimplemented.
+Git is initialized on `main` and tracks `origin/main`; current HEAD `f28e48c` is clean and synchronized with `origin/main`. External notification delivery, hosted backup/restore and production deployment remain unimplemented.
 
 ## Technical Debt
 
@@ -92,7 +92,9 @@ Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles
 
 ## Next Steps
 
-1. Explore the development UI at `http://127.0.0.1:5173` using fictional local data; production-readiness work remains a separate phase.
+1. Complete public-account security and configurable real email delivery without enabling unsafe defaults.
+2. Implement/test provider-backed payment and hosted backup/restore workflows.
+3. Add CI and deployment/operations controls; verify recovery and production readiness in a real environment before public launch.
 
 ## Latest Report
 

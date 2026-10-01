@@ -1,6 +1,6 @@
 # Decision Register and Deferred Gates
 
-Updated: 2026-10-01. Decisions 0013–0021 were made by Codex under explicit user delegation for that round; ADR-0024 was selected under the owner's current autonomous implementation delegation. [ADR index](../decisions/README.md).
+Updated: 2026-10-01. Decisions 0013–0021 were made by Codex under explicit user delegation for that round; ADR-0024 was selected under the owner's 2026-10-01 autonomous implementation delegation. That delegation applies to the active production-readiness goal; material technical choices will be recorded in ADRs and still require external resources for live verification. [ADR index](../decisions/README.md).
 
 ## Current Baseline — DECIDED
 
@@ -23,15 +23,15 @@ These choices supplement, not supersede, ADR-0001 through ADR-0012. Runtime comp
 
 15-minute reservation, 60-second maintenance cycle, 24-hour minimum idempotency retention, 12-hour customer session/one-hour staff session and password reset expiry, list size 20/max100, 50 distinct order lines/max99 units per line, 64 KiB API body limit. These are initial policy defaults, not measured capacity/security guarantees. Tests must inject clocks and settings.
 
-## Implementation-Time Verification — PENDING
+## Implementation-Time Verification — HISTORICAL
 
 | Item | Why not claim complete | Required before |
 |---|---|---|
-| Exact patched versions and locks | No resolver/build has run | Scaffold acceptance |
-| Type-check/formatter configuration and generated client types | No source exists | Relevant slice completion |
-| Concurrency, permissions, schema and migration tests | Specifications are not execution evidence | Application acceptance |
-| Concrete model field lengths and indexes beyond specified invariants | Resolve with serializers/query paths | Associated model migration |
-| Local port/image digest/settings details | Need reproducible executable setup | Local platform handoff |
+| Exact patched versions and locks | Verified for current dependencies at the local-development milestone | Re-evaluate on dependency changes |
+| Type-check/formatter configuration and generated client types | Implemented and exercised locally | Relevant API/UI changes |
+| Concurrency, permissions, schema and migration tests | Implemented for current local application baseline | Extend for public account/payment behavior |
+| Concrete model field lengths and indexes beyond specified invariants | Resolved for current models | Re-evaluate with new production workflows |
+| Local port/image digest/settings details | Local Compose setup is reproducible; no production artifact/deployment yet | Production packaging |
 
 Routine implementation choices can follow the accepted conventions; substantive changes need recorded authority.
 
@@ -43,8 +43,8 @@ Routine implementation choices can follow the accepted conventions; substantive 
 | Tax, invoices, shipping coverage/charges/fulfillment | DEFERRED | Market/jurisdiction and commercial requirements before real sales |
 | Guest checkout, variants, multiple warehouses/currencies/sellers | DEFERRED | Validated scope change |
 | Public SEO strategy / server rendering | DEFERRED | Search acquisition goals; current SPA limitations acknowledged |
-| Email verification/reset delivery provider | DEFERRED | Before public account use |
-| Trusted proxy parsing, edge/shared abuse controls, monitoring and staff MFA/access policy | DEFERRED | Before internet exposure; current PostgreSQL app limits only mitigate common single-source guessing |
+| Production SMTP delivery, mailbox ownership and verified-account policy | ACTIVE | Implement generic SMTP configuration and enforce verified ownership; live deliverability needs a verified sending domain/provider account |
+| Trusted proxy parsing, edge/shared abuse controls, monitoring and staff MFA/access policy | ACTIVE | Implement allow-listed proxy and cross-source controls; volumetric protection/MFA operations need hosted edge/identity controls |
 | Privacy retention/erasure and audit retention | DEFERRED | Before real personal data |
 | Redis/cache | DEFERRED | Measured latency/hot paths or an explicit shared-state requirement |
 | RabbitMQ/Celery/integration events | DEFERRED | Durable external work or measured separation needs |
@@ -55,11 +55,11 @@ Routine implementation choices can follow the accepted conventions; substantive 
 | Cloud, Kubernetes, Helm, GitOps, Terraform | DEFERRED | Deployment/platform need and cost comparison |
 | Production secrets/TLS/DNS/networking/storage | DEFERRED | Hosted topology selected |
 | Metrics/log platform, tracing, alert ownership | DEFERRED | First operated environment and diagnostic needs |
-| SLOs, RPO/RTO, backup retention and restore architecture | DEFERRED | Business impact and operated data; before real persistent use |
+| SLOs, RPO/RTO, backup retention and restore architecture | ACTIVE | Implement portable hosted backup and restore drill; numeric targets require actual business impact and hosted validation |
 | Load thresholds and scaling/autoscaling | DEFERRED | Representative workload scenarios and measurement |
 
 ## Risk and Readiness Boundary
 
-The next deliverable can be a local simulated implementation. No public/real-money/real-PII launch is approved. Known deployment requirements are not waived by marking local design decisions Accepted.
+Local development is complete. Public accounts, real-money processing and hosted real-PII operation remain unavailable until the security, provider and operational gates are verified. Technical implementation progress does not itself approve a public launch.
 
 No estimate of remaining decision count can be exact before requirements evolve. Deferred does not mean rejected or inevitable.
