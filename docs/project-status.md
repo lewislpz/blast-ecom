@@ -46,7 +46,7 @@ The reviewed Group-admin privilege-escalation path is closed in the current impl
 
 ## In Progress
 
-Local-development completion plan: implementation, documentation, threat-model, tests, Compose/browser integration, independent security review and user-approval evidence are complete. The full backend suite passes (117 tests); frontend quality checks, schema/type synchronization and three Chromium E2E tests pass. The development Compose stack is running for manual exploration at `http://127.0.0.1:5173`. Local commit is the remaining delivery action; no push or hosted deployment is authorized or needed for this scope.
+Local-development completion plan: implementation, documentation, threat-model, tests, Compose/browser integration, independent security review and user-approval evidence are complete. The full backend suite passes (117 tests); frontend quality checks, schema/type synchronization and three Chromium E2E tests pass. The development Compose stack is running for manual exploration at `http://127.0.0.1:5173`. Local commit `4697943` records the implementation; no push or hosted deployment was performed or needed for this scope.
 
 ## Pending Decisions
 
@@ -66,7 +66,7 @@ No known blocker for the documented local-development scope. Shared/public deplo
 
 ## Known Issues
 
-Git is initialized on `main` and tracks `origin/main`; recovery/notification/backup/container changes are prepared for a local commit and have not been pushed. External notification delivery, hosted backup/restore and production deployment remain unimplemented.
+Git is initialized on `main` and tracks `origin/main`; recovery/notification/backup/container changes are committed locally and have not been pushed. External notification delivery, hosted backup/restore and production deployment remain unimplemented.
 
 ## Technical Debt
 
@@ -92,8 +92,7 @@ Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles
 
 ## Next Steps
 
-1. Create the authorized local Conventional Commit after final repository/control-plane validation.
-2. Explore the development UI at `http://127.0.0.1:5173` using fictional local data; production-readiness work remains a separate phase.
+1. Explore the development UI at `http://127.0.0.1:5173` using fictional local data; production-readiness work remains a separate phase.
 
 ## Latest Report
 
