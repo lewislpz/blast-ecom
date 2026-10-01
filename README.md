@@ -4,7 +4,7 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 
 ## Current Status
 
-**Phase 1 — Core Domain & Application Foundation.** Runtime scaffold, catalog/inventory, transactional order domain, session/CSRF APIs, customer browser journey and local PostgreSQL Compose/maintenance workflow are implemented and locally verified. Notification delivery remains simulated. This is not production-ready commerce.
+**Phase 1 — Core Domain & Application Foundation.** Catalog/inventory, transactional orders, session/CSRF APIs, local account recovery/demo verification, customer browser journey, local console notifications and PostgreSQL backup/restore are implemented. Docker Compose now provides the local API, frontend, maintenance worker and PostgreSQL workflow. This is not production-ready commerce.
 
 ## Implemented
 
@@ -17,12 +17,14 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 - RFC 9457 Problem Details for DRF errors; OpenAPI generation and validation for the catalog contract.
 - Locked backend and frontend dependencies, generated OpenAPI TypeScript contracts, lint/type/test/build commands, PostgreSQL-backed backend tests, frontend behavior/API-client tests and browser E2E purchase coverage.
 - Same-origin session authentication with CSRF bootstrap, login/logout/current-user; PostgreSQL-backed source and source+identity attempt limits protect customer and Django Admin login, while local registration is available only when `DEBUG=true` and separately limited.
+- DEBUG-only local password recovery and demo email-verification flows use Django's console email backend; reset/verification links never appear in API responses, and demo verification does not claim mailbox ownership or block local sign-in.
 - Owner-scoped order list/create/detail/payment-simulation/cancel APIs, idempotency headers, strict request validation, 64 KiB request cap, Problem Details and generated OpenAPI.
-- PostgreSQL-only local Compose service, explicit Django migrations and idempotent fictional catalog seed, database readiness endpoint and restartable bounded expiry/notification-simulation/idempotency maintenance.
+- Local Compose API, Vite frontend, PostgreSQL and maintenance worker; locked app dependencies, explicit Django migrations, idempotent fictional catalog seed, database readiness endpoint and restartable bounded expiry/notification processing.
+- DEBUG-only local PostgreSQL custom-format backup and restore with restrictive file permissions, no-overwrite backup paths and fresh-database-only targets.
 
 ## Planned
 
-Password reset and email verification are not implemented; public account use is not ready. Application attempt limits reduce common single-source guessing but do not replace trusted-proxy configuration, edge-level controls, staff MFA, or monitoring required before public exposure. Payments, taxes, shipping, and notification delivery remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
+Hosted deployment and real external notification delivery are not implemented. Public account use is not ready: local console email does not prove mailbox ownership, and application attempt limits do not replace trusted-proxy configuration, edge-level controls, staff MFA, or monitoring required before public exposure. Payments, taxes and shipping remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
 
 ## Architecture and Stack
 
@@ -35,7 +37,7 @@ See [ADRs](docs/decisions/README.md), [architecture](docs/architecture/overview.
 
 ## Local Checks
 
-The [local development guide](docs/development/local-development.md) lists prerequisites and commands for PostgreSQL, Django, the frontend and maintenance process.
+The [local development guide](docs/development/local-development.md) lists the Docker Compose startup, migration, seed, backup and restore commands.
 
 ## Documentation
 

@@ -39,7 +39,11 @@ def test_csrf_bootstrap_and_local_registration_are_protected_and_customer_only()
     )
     user = User.objects.get(email="customer@example.test")
     assert response.status_code == 201
-    assert response.json() == {"id": str(user.pk), "email": user.email}
+    assert response.json() == {
+        "id": str(user.pk),
+        "email": user.email,
+        "email_verified": False,
+    }
     assert user.is_active is True
     assert user.is_staff is False
     assert user.is_superuser is False
@@ -208,7 +212,11 @@ def test_login_rotates_session_me_is_private_and_logout_revokes_it() -> None:
     )
 
     assert logged_in.status_code == 200
-    assert logged_in.json() == {"id": str(user.pk), "email": user.email}
+    assert logged_in.json() == {
+        "id": str(user.pk),
+        "email": user.email,
+        "email_verified": False,
+    }
     assert client.cookies[settings.SESSION_COOKIE_NAME].value != old_session_key
     assert client.session.get_expiry_age() <= 12 * 60 * 60
     assert client.get("/api/v1/auth/me/").json() == logged_in.json()

@@ -18,6 +18,66 @@ paths:
               schema:
                 $ref: '#/components/schemas/CsrfToken'
           description: ''
+  /api/v1/auth/email-verification/:
+    post:
+      operationId: v1_auth_email_verification_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Django CSRF token obtained from /api/v1/auth/csrf/.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetRequested'
+          description: ''
+  /api/v1/auth/email-verification/confirm/:
+    post:
+      operationId: v1_auth_email_verification_confirm_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Django CSRF token obtained from /api/v1/auth/csrf/.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationConfirm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationConfirm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailVerificationConfirm'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerificationResult'
+          description: ''
+        '400':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
   /api/v1/auth/login/:
     post:
       operationId: v1_auth_login_create
@@ -107,6 +167,78 @@ paths:
                 $ref: '#/components/schemas/Account'
           description: ''
         '403':
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+          description: ''
+  /api/v1/auth/password-reset/:
+    post:
+      operationId: v1_auth_password_reset_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Django CSRF token obtained from /api/v1/auth/csrf/.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetRequested'
+          description: ''
+  /api/v1/auth/password-reset/confirm/:
+    post:
+      operationId: v1_auth_password_reset_confirm_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Django CSRF token obtained from /api/v1/auth/csrf/.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetConfirm'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetRequested'
+          description: ''
+        '400':
           content:
             application/problem+json:
               schema:
@@ -543,8 +675,11 @@ components:
         email:
           type: string
           format: email
+        email_verified:
+          type: boolean
       required:
       - email
+      - email_verified
       - id
     Category:
       type: object
@@ -618,6 +753,24 @@ components:
       - city
       - country_code
       - recipient
+    EmailVerificationConfirm:
+      type: object
+      description: Reject unknown input fields instead of silently ignoring attempted
+        overrides.
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          maxLength: 2048
+      required:
+      - token
+    EmailVerificationResult:
+      type: object
+      properties:
+        verified:
+          type: boolean
+      required:
+      - verified
     LoginRequest:
       type: object
       description: Reject unknown input fields instead of silently ignoring attempted
@@ -852,6 +1005,45 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Product'
+    PasswordResetConfirm:
+      type: object
+      description: Reject unknown input fields instead of silently ignoring attempted
+        overrides.
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        token:
+          type: string
+          writeOnly: true
+          maxLength: 256
+        password:
+          type: string
+          writeOnly: true
+          maxLength: 128
+          minLength: 12
+      required:
+      - password
+      - token
+      - user_id
+    PasswordResetRequest:
+      type: object
+      description: Reject unknown input fields instead of silently ignoring attempted
+        overrides.
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+      required:
+      - email
+    PasswordResetRequested:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
     PaymentOperationResponse:
       type: object
       properties:

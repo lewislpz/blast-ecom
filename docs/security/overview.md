@@ -1,6 +1,6 @@
 # Security Baseline
 
-Status: Local-development controls for catalog/admin permissions, customer session/CSRF/order APIs, Group administration and PostgreSQL-backed login/registration attempt limits are implemented and targeted-tested. Group administration is restricted to active staff superusers as a break-glass path. [ADR-0016](../decisions/ADR-0016-identity-and-administration.md), [ADR-0023](../decisions/ADR-0023-break-glass-group-administration.md), [ADR-0024](../decisions/ADR-0024-authentication-attempt-limits.md).
+Status: Local-development controls for catalog/admin permissions, customer session/CSRF/order APIs, Group administration, PostgreSQL-backed authentication limits, password recovery and demo email verification are implemented and targeted-tested. Group administration is restricted to active staff superusers as a break-glass path. Password recovery and verification use console email and do not establish public-account readiness or real mailbox ownership. [ADR-0016](../decisions/ADR-0016-identity-and-administration.md), [ADR-0023](../decisions/ADR-0023-break-glass-group-administration.md), [ADR-0024](../decisions/ADR-0024-authentication-attempt-limits.md), [ADR-0025](../decisions/ADR-0025-local-account-recovery-and-email-verification.md).
 
 ## Identity
 
@@ -8,13 +8,13 @@ Custom AbstractUser-based user from initial migration, username removed in favor
 
 Use Django's password hashing API/default supported PBKDF2 configuration and built-in common-password, similarity and numeric validators, with a 12-character minimum and 128-character input maximum. Never store/log plaintext passwords or implement cryptography. Exact hasher work factors track the selected patched Django release.
 
-Registration creates a customer only and is runtime-gated to `DEBUG=true`; role/staff flags are not writable input. There is no password-reset endpoint or delivery flow. No public registration or password reset until verified email ownership, abuse protection and provider choices are implemented.
+Registration creates a customer only and is runtime-gated to `DEBUG=true`; role/staff flags are not writable input. Local account recovery and demo verification are runtime-gated to `DEBUG=true`, use Django's console email backend and existing PostgreSQL attempt limits, and are documented in [authentication flows](authentication.md). Verification does not gate local sign-in and does not prove control of a real mailbox. No public registration or password reset until actual email ownership, public abuse protection and provider choices are implemented.
 
 ## Sessions and Origin
 
 Database-backed Django sessions; cookie HttpOnly, SameSite=Lax and Secure for HTTPS deployments. No JWT or localStorage credentials. Same-origin frontend/API/admin in deployed design; local Vite proxy handles /api and /admin with /static proxy for Django admin assets. Do not enable permissive credentialed CORS.
 
-Customer sessions expire after 12 hours; staff after one hour, configured at login, with no indefinite sliding extension. These are provisional policy defaults. Django rotates session on login and logout flushes it. Password reset/change invalidation is not implemented because those flows do not exist. Inactive users cannot authenticate.
+Customer sessions expire after 12 hours; staff after one hour, configured at login, with no indefinite sliding extension. These are provisional policy defaults. Django rotates session on login and logout flushes it. Successful local password reset changes the password hash without refreshing the current session-auth hash, invalidating existing sessions. Inactive users cannot authenticate.
 
 CSRF token bootstrap endpoint, `X-CSRFToken` header for unsafe requests, and explicit CSRF enforcement on local registration/login as well as authenticated mutations/logout. DRF SessionAuthentication alone does not protect anonymous login views. The CSRF cookie is HttpOnly; clients obtain the request token from bootstrap JSON and refresh it after session rotation. Staff authorization and CSRF apply to admin/custom admin actions too.
 
@@ -41,7 +41,7 @@ Secrets/config via environment, ignored local env files and example placeholders
 
 Customer login and local registration use atomic PostgreSQL fixed-window counters keyed by HMAC-SHA-256 digests of source and (when available) normalized identity. Django Admin login shares the same policy. Current defaults are configurable and provisional: login 30/minute per source and 5/15 minutes per source+identity; local registration 10/hour per source and 3/hour per source+identity. Invalid CSRF requests do not consume quota. PostgreSQL failures fail closed. The cleanup runs only through the DEBUG/local-database maintenance command.
 
-These app-level controls help with common single-source guessing but do not prevent distributed attacks, proxy identity spoofing/misconfiguration, or volumetric denial of service. Only `REMOTE_ADDR` is trusted today; forwarded headers are intentionally ignored until trusted proxy configuration exists. Before public exposure, add a reviewed edge/shared abuse-control strategy and monitoring, staff MFA/access restrictions, real email ownership flows, TLS and security headers (including a CSP matching built assets). No public readiness is claimed.
+These app-level controls help with common single-source guessing and recovery abuse but do not prevent distributed attacks, proxy identity spoofing/misconfiguration, or volumetric denial of service. Only `REMOTE_ADDR` is trusted today; forwarded headers are intentionally ignored until trusted proxy configuration exists. Before public exposure, add a reviewed edge/shared abuse-control strategy and monitoring, staff MFA/access restrictions, real email ownership flows, TLS and security headers (including a CSP matching built assets). No public readiness is claimed.
 
 ## Sources
 

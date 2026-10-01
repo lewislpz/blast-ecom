@@ -34,6 +34,34 @@ class LoginRequestSerializer(StrictSerializer):
 class AccountSerializer(serializers.Serializer[Any]):
     id = serializers.UUIDField()
     email = serializers.EmailField()
+    email_verified = serializers.BooleanField()
+
+
+class PasswordResetRequestSerializer(StrictSerializer):
+    email = serializers.EmailField(max_length=254)
+
+    def validate_email(self, value: str) -> str:
+        return User.objects.normalize_email(value)
+
+
+class PasswordResetConfirmSerializer(StrictSerializer):
+    user_id = serializers.UUIDField()
+    token = serializers.CharField(max_length=256, trim_whitespace=False, write_only=True)
+    password = serializers.CharField(
+        write_only=True, min_length=12, max_length=128, trim_whitespace=False
+    )
+
+
+class EmailVerificationConfirmSerializer(StrictSerializer):
+    token = serializers.CharField(max_length=2048, trim_whitespace=False, write_only=True)
+
+
+class PasswordResetRequestedSerializer(serializers.Serializer[Any]):
+    detail = serializers.CharField()
+
+
+class EmailVerificationResultSerializer(serializers.Serializer[Any]):
+    verified = serializers.BooleanField()
 
 
 class CsrfTokenSerializer(serializers.Serializer[Any]):

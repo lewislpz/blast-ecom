@@ -124,6 +124,33 @@ export const api = {
     clearCsrfToken()
     return account
   },
+  async requestPasswordReset(email: string): Promise<{ detail: string }> {
+    return request('/auth/password-reset/', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  },
+  async confirmPasswordReset(input: {
+    user_id: string
+    token: string
+    password: string
+  }): Promise<{ detail: string }> {
+    return request('/auth/password-reset/confirm/', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  },
+  async requestEmailVerification(): Promise<{ detail: string }> {
+    return request('/auth/email-verification/', { method: 'POST' })
+  },
+  async confirmEmailVerification(
+    token: string,
+  ): Promise<{ verified: boolean }> {
+    return request('/auth/email-verification/confirm/', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    })
+  },
   async logout(): Promise<void> {
     await request('/auth/logout/', { method: 'POST' })
     clearCsrfToken()

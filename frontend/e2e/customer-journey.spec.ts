@@ -94,7 +94,14 @@ test.describe('local customer purchase journey', () => {
 test('storefront and account entry pages have no critical or serious accessibility violations', async ({
   page,
 }) => {
-  for (const route of ['/', '/login', '/register']) {
+  for (const route of [
+    '/',
+    '/login',
+    '/register',
+    '/password-reset',
+    '/reset-password',
+    '/verify-email',
+  ]) {
     await page.goto(route)
     await expect(page.locator('.route-content h1').first()).toBeVisible()
     const results = await new AxeBuilder({ page }).analyze()
@@ -109,4 +116,17 @@ test('storefront and account entry pages have no critical or serious accessibili
       `Accessibility violations on ${route}`,
     ).toEqual([])
   }
+})
+
+test('password recovery presents the same local-only response without revealing an account', async ({
+  page,
+}) => {
+  await page.goto('/password-reset')
+  await page.getByLabel('Correo electrónico').fill('unknown@example.test')
+  await page.getByRole('button', { name: /Enviar instrucciones/ }).click()
+
+  await expect(page.getByRole('status')).toContainText(
+    'Si la cuenta puede recuperarse',
+  )
+  await expect(page.getByText(/no envía correo real/)).toBeVisible()
 })

@@ -7,6 +7,7 @@ export type ClientOptions = {
 export type Account = {
     id: string;
     email: string;
+    email_verified: boolean;
 };
 
 export type Category = {
@@ -38,6 +39,17 @@ export type DeliveryAddressInput = {
     region?: string;
     postal_code?: string;
     country_code: string;
+};
+
+/**
+ * Reject unknown input fields instead of silently ignoring attempted overrides.
+ */
+export type EmailVerificationConfirm = {
+    token: string;
+};
+
+export type EmailVerificationResult = {
+    verified: boolean;
 };
 
 /**
@@ -113,6 +125,24 @@ export type PaginatedProductList = {
     next?: string | null;
     previous?: string | null;
     results: Array<Product>;
+};
+
+/**
+ * Reject unknown input fields instead of silently ignoring attempted overrides.
+ */
+export type PasswordResetConfirm = {
+    user_id: string;
+};
+
+/**
+ * Reject unknown input fields instead of silently ignoring attempted overrides.
+ */
+export type PasswordResetRequest = {
+    email: string;
+};
+
+export type PasswordResetRequested = {
+    detail: string;
 };
 
 export type PaymentOperationResponse = {
@@ -226,6 +256,15 @@ export type PaginatedProductListWritable = {
     results: Array<ProductWritable>;
 };
 
+/**
+ * Reject unknown input fields instead of silently ignoring attempted overrides.
+ */
+export type PasswordResetConfirmWritable = {
+    user_id: string;
+    token: string;
+    password: string;
+};
+
 export type ProductWritable = {
     sku: string;
     title: string;
@@ -254,6 +293,50 @@ export type V1AuthCsrfRetrieveResponses = {
 };
 
 export type V1AuthCsrfRetrieveResponse = V1AuthCsrfRetrieveResponses[keyof V1AuthCsrfRetrieveResponses];
+
+export type V1AuthEmailVerificationCreateData = {
+    body?: never;
+    headers: {
+        /**
+         * Django CSRF token obtained from /api/v1/auth/csrf/.
+         */
+        'X-CSRFToken': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/email-verification/';
+};
+
+export type V1AuthEmailVerificationCreateResponses = {
+    202: PasswordResetRequested;
+};
+
+export type V1AuthEmailVerificationCreateResponse = V1AuthEmailVerificationCreateResponses[keyof V1AuthEmailVerificationCreateResponses];
+
+export type V1AuthEmailVerificationConfirmCreateData = {
+    body: EmailVerificationConfirm;
+    headers: {
+        /**
+         * Django CSRF token obtained from /api/v1/auth/csrf/.
+         */
+        'X-CSRFToken': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/email-verification/confirm/';
+};
+
+export type V1AuthEmailVerificationConfirmCreateErrors = {
+    400: ProblemDetail;
+};
+
+export type V1AuthEmailVerificationConfirmCreateError = V1AuthEmailVerificationConfirmCreateErrors[keyof V1AuthEmailVerificationConfirmCreateErrors];
+
+export type V1AuthEmailVerificationConfirmCreateResponses = {
+    200: EmailVerificationResult;
+};
+
+export type V1AuthEmailVerificationConfirmCreateResponse = V1AuthEmailVerificationConfirmCreateResponses[keyof V1AuthEmailVerificationConfirmCreateResponses];
 
 export type V1AuthLoginCreateData = {
     body: LoginRequestWritable;
@@ -328,6 +411,50 @@ export type V1AuthMeRetrieveResponses = {
 };
 
 export type V1AuthMeRetrieveResponse = V1AuthMeRetrieveResponses[keyof V1AuthMeRetrieveResponses];
+
+export type V1AuthPasswordResetCreateData = {
+    body: PasswordResetRequest;
+    headers: {
+        /**
+         * Django CSRF token obtained from /api/v1/auth/csrf/.
+         */
+        'X-CSRFToken': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/password-reset/';
+};
+
+export type V1AuthPasswordResetCreateResponses = {
+    202: PasswordResetRequested;
+};
+
+export type V1AuthPasswordResetCreateResponse = V1AuthPasswordResetCreateResponses[keyof V1AuthPasswordResetCreateResponses];
+
+export type V1AuthPasswordResetConfirmCreateData = {
+    body: PasswordResetConfirmWritable;
+    headers: {
+        /**
+         * Django CSRF token obtained from /api/v1/auth/csrf/.
+         */
+        'X-CSRFToken': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/password-reset/confirm/';
+};
+
+export type V1AuthPasswordResetConfirmCreateErrors = {
+    400: ProblemDetail;
+};
+
+export type V1AuthPasswordResetConfirmCreateError = V1AuthPasswordResetConfirmCreateErrors[keyof V1AuthPasswordResetConfirmCreateErrors];
+
+export type V1AuthPasswordResetConfirmCreateResponses = {
+    200: PasswordResetRequested;
+};
+
+export type V1AuthPasswordResetConfirmCreateResponse = V1AuthPasswordResetConfirmCreateResponses[keyof V1AuthPasswordResetConfirmCreateResponses];
 
 export type V1AuthRegisterCreateData = {
     body: RegisterRequestWritable;

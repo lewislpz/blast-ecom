@@ -28,6 +28,10 @@
 | [ADR-0022](ADR-0022-api-type-generator.md) | Frontend OpenAPI Type Generator | Accepted | 2026-09-30 |
 | [ADR-0023](ADR-0023-break-glass-group-administration.md) | Break-Glass Group Administration | Accepted | 2026-09-30 |
 | [ADR-0024](ADR-0024-authentication-attempt-limits.md) | Authentication Attempt Limits | Accepted | 2026-10-01 |
+| [ADR-0025](ADR-0025-local-account-recovery-and-email-verification.md) | Local Account Recovery and Email Verification | Accepted | 2026-10-01 |
+| [ADR-0026](ADR-0026-local-notification-processing.md) | Restart-Safe Local Notification Processing | Accepted | 2026-10-01 |
+| [ADR-0027](ADR-0027-local-postgresql-backup-and-restore.md) | Safe Local PostgreSQL Backup and Restore | Accepted | 2026-10-01 |
+| [ADR-0028](ADR-0028-local-application-container-workflow.md) | Local Application Container Workflow | Accepted | 2026-10-01 |
 
 ## Policy
 

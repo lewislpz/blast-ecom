@@ -8,8 +8,11 @@ import { AccountPagesPlaceholder } from './pages/AccountPagesPlaceholder'
 import {
   AuthPage,
   CheckoutPage,
+  EmailVerificationPage,
   OrderDetailPage,
   OrdersPage,
+  PasswordResetConfirmPage,
+  PasswordResetRequestPage,
 } from './pages/AccountPages'
 import { CartPage, CatalogPage, ProductPage } from './pages/StorePages'
 import './styles/global.css'
@@ -28,6 +31,15 @@ function StoreRoutes() {
               <Route path="/cart" element={<CartPage />} />
               <Route path="/login" element={<AuthPage mode="login" />} />
               <Route path="/register" element={<AuthPage mode="register" />} />
+              <Route
+                path="/password-reset"
+                element={<PasswordResetRequestPage />}
+              />
+              <Route
+                path="/reset-password"
+                element={<PasswordResetConfirmPage />}
+              />
+              <Route path="/verify-email" element={<EmailVerificationPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/account/orders" element={<OrdersPage />} />
               <Route path="/orders/:id" element={<OrderDetailPage />} />

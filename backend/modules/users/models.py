@@ -11,6 +11,7 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = None  # type: ignore[assignment]
     email = models.EmailField("email address", unique=True)
+    email_verified_at = models.DateTimeField(null=True, blank=True)
 
     USERNAME_FIELD: str = "email"
     REQUIRED_FIELDS: ClassVar[list[str]] = []

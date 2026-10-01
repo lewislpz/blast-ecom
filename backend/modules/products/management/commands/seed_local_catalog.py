@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from modules.common.local_database import is_local_database_host
 from modules.inventory.services import adjust_stock, ensure_stock_item
 from modules.products.models import Category, Product
 from modules.users.models import User
@@ -16,8 +17,8 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args: object, **options: object) -> None:
         del args, options
-        database_host = settings.DATABASES["default"].get("HOST", "")
-        is_local_database = database_host in {"", "localhost", "127.0.0.1", "::1"}
+        database_host = str(settings.DATABASES["default"].get("HOST", ""))
+        is_local_database = is_local_database_host(database_host)
         if (
             not settings.DEBUG
             or not is_local_database

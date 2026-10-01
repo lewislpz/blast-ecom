@@ -1,5 +1,5 @@
-import { useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import {
   useMutation,
   useQueries,
@@ -28,6 +28,10 @@ function messageFor(error: unknown): string {
     return 'El correo o la contraseña no son correctos.'
   if (error.code === 'ACCOUNT_UNAVAILABLE')
     return 'No se ha podido crear la cuenta con esos datos.'
+  if (error.code === 'PASSWORD_RESET_INVALID')
+    return 'El enlace de recuperación no es válido o ya ha caducado. Solicita uno nuevo.'
+  if (error.code === 'EMAIL_VERIFICATION_INVALID')
+    return 'El enlace de verificación no es válido, ya se utilizó o ha caducado.'
   if (error.code === 'PRICE_CHANGED')
     return 'El precio de un producto ha cambiado. Revisa el total actualizado antes de continuar.'
   if (error.code === 'OUT_OF_STOCK')
@@ -64,7 +68,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       setPassword('')
       if (registering) {
         setError(
-          'Cuenta de demo creada. Ya puedes entrar con tus credenciales.',
+          'Cuenta de demo creada. Ya puedes entrar; abre el enlace de verificación que aparece en la consola local de Django.',
         )
       } else {
         queryClient.setQueryData(['session'], account)
@@ -158,11 +162,281 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             {registering ? 'Entra aquí' : 'Regístrate'}
           </Link>
         </p>
+        {!registering && (
+          <p className="auth-switch">
+            <Link to="/password-reset">¿Olvidaste tu contraseña?</Link>
+          </p>
+        )}
         <p className="demo-copy">
           La creación de cuentas está disponible únicamente en el entorno local
           de demostración.
         </p>
       </section>
+    </main>
+  )
+}
+
+function fragmentValues(hash: string): Record<string, string> {
+  return Object.fromEntries(new URLSearchParams(hash.slice(1)))
+}
+
+export function PasswordResetRequestPage() {
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setMessage('')
+    setError('')
+    setBusy(true)
+    try {
+      await api.requestPasswordReset(email)
+      setMessage(
+        'Si la cuenta puede recuperarse, encontrarás las instrucciones en la consola local de Django.',
+      )
+    } catch (cause) {
+      setError(messageFor(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <main className="auth-page page-container">
+      <div className="auth-art">
+        <ProductArt index={2} />
+        <p className="eyebrow">Recupera el acceso</p>
+        <h2>
+          Volver a lo
+          <br />
+          importante.
+        </h2>
+        <p>Enviaremos las instrucciones a la consola local de Django.</p>
+      </div>
+      <section className="auth-panel">
+        <Link to="/login" className="back-link">
+          ← Volver al acceso
+        </Link>
+        <p className="eyebrow">Cuenta local</p>
+        <h1>Restablece tu contraseña.</h1>
+        <p>
+          Introduce tu correo. La respuesta será la misma tanto si la cuenta
+          existe como si no.
+        </p>
+        <form className="form-stack" onSubmit={submit}>
+          <label htmlFor="reset-email">Correo electrónico</label>
+          <input
+            id="reset-email"
+            autoComplete="email"
+            type="email"
+            required
+            maxLength={254}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          {message && (
+            <p className="notice notice-success" role="status">
+              {message}
+            </p>
+          )}
+          {error && (
+            <p className="notice notice-error" role="alert">
+              {error}
+            </p>
+          )}
+          <button
+            className="button button-dark full-button"
+            type="submit"
+            disabled={busy}
+          >
+            {busy ? 'Un momento…' : 'Enviar instrucciones'}{' '}
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+        <p className="demo-copy">
+          Esta función sólo está habilitada para desarrollo local; no envía
+          correo real.
+        </p>
+      </section>
+    </main>
+  )
+}
+
+export function PasswordResetConfirmPage() {
+  const location = useLocation()
+  const [credentials, setCredentials] = useState(() =>
+    fragmentValues(location.hash),
+  )
+  const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (location.hash) {
+      window.history.replaceState(
+        {},
+        document.title,
+        `${location.pathname}${location.search}`,
+      )
+    }
+  }, [location.hash, location.pathname, location.search])
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setMessage('')
+    setError('')
+    if (password !== confirmation) {
+      setError('Las contraseñas no coinciden.')
+      return
+    }
+    setBusy(true)
+    try {
+      const result = await api.confirmPasswordReset({
+        user_id: credentials.user_id ?? '',
+        token: credentials.token ?? '',
+        password,
+      })
+      setMessage(result.detail)
+      setCredentials({})
+      setPassword('')
+      setConfirmation('')
+    } catch (cause) {
+      setError(messageFor(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const linkValid = Boolean(credentials.user_id && credentials.token)
+  return (
+    <main className="page-container page-content">
+      <PageIntro kicker="Cuenta local" title="Elige una contraseña nueva." />
+      {message ? (
+        <p className="notice notice-success" role="status">
+          {message}
+        </p>
+      ) : !linkValid ? (
+        <p className="notice notice-error" role="alert">
+          El enlace no es válido o ya no está disponible. Solicita uno nuevo.
+        </p>
+      ) : (
+        <form className="form-stack account-form" onSubmit={submit}>
+          <label htmlFor="new-password">Nueva contraseña</label>
+          <input
+            id="new-password"
+            autoComplete="new-password"
+            type="password"
+            required
+            minLength={12}
+            maxLength={128}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <label htmlFor="confirm-password">Repite la contraseña</label>
+          <input
+            id="confirm-password"
+            autoComplete="new-password"
+            type="password"
+            required
+            minLength={12}
+            maxLength={128}
+            value={confirmation}
+            onChange={(event) => setConfirmation(event.target.value)}
+          />
+          {error && (
+            <p className="notice notice-error" role="alert">
+              {error}
+            </p>
+          )}
+          <button className="button button-dark" type="submit" disabled={busy}>
+            {busy ? 'Guardando…' : 'Cambiar contraseña'}
+          </button>
+        </form>
+      )}
+      <Link className="text-button" to="/login">
+        Volver al acceso →
+      </Link>
+    </main>
+  )
+}
+
+export function EmailVerificationPage() {
+  const location = useLocation()
+  const [token, setToken] = useState(
+    () => fragmentValues(location.hash).token ?? '',
+  )
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (location.hash) {
+      window.history.replaceState(
+        {},
+        document.title,
+        `${location.pathname}${location.search}`,
+      )
+    }
+  }, [location.hash, location.pathname, location.search])
+
+  async function verify() {
+    setError('')
+    setBusy(true)
+    try {
+      await api.confirmEmailVerification(token)
+      setMessage('La cuenta local ha quedado marcada como verificada.')
+      setToken('')
+    } catch (cause) {
+      setError(messageFor(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <main className="page-container page-content">
+      <PageIntro
+        kicker="Cuenta local"
+        title="Verifica el correo de demostración."
+      />
+      <p>
+        Este paso actualiza únicamente el estado de la cuenta local. No
+        demuestra la propiedad de un buzón real.
+      </p>
+      {message ? null : !token ? (
+        <p className="notice notice-error" role="alert">
+          El enlace no es válido o ya no está disponible. Solicita uno nuevo
+          desde tu cuenta.
+        </p>
+      ) : (
+        <button
+          className="button button-dark"
+          type="button"
+          disabled={busy || Boolean(message)}
+          onClick={verify}
+        >
+          {busy ? 'Verificando…' : 'Confirmar verificación local'}
+        </button>
+      )}
+      {message && (
+        <p className="notice notice-success" role="status">
+          {message}
+        </p>
+      )}
+      {error && (
+        <p className="notice notice-error" role="alert">
+          {error}
+        </p>
+      )}
+      <p>
+        <Link className="text-button" to="/login">
+          Ir al acceso →
+        </Link>
+      </p>
     </main>
   )
 }
@@ -533,6 +807,9 @@ export function OrdersPage() {
       navigate('/')
     },
   })
+  const verificationRequest = useMutation({
+    mutationFn: api.requestEmailVerification,
+  })
   if (session.isLoading)
     return (
       <main className="page-container page-content">
@@ -576,6 +853,41 @@ export function OrdersPage() {
         <ErrorMessage>
           No se pudo cerrar la sesión. Inténtalo de nuevo.
         </ErrorMessage>
+      )}
+      {!session.data.email_verified && (
+        <section
+          className="notice notice-info"
+          aria-labelledby="email-status-heading"
+        >
+          <h2 id="email-status-heading">
+            Correo pendiente de verificación local
+          </h2>
+          <p>
+            La cuenta puede usarse en esta demo. La verificación local no
+            confirma la propiedad de un buzón real.
+          </p>
+          <button
+            className="text-button"
+            type="button"
+            disabled={verificationRequest.isPending}
+            onClick={() => verificationRequest.mutate()}
+          >
+            {verificationRequest.isPending
+              ? 'Preparando enlace…'
+              : 'Mostrar enlace en la consola local'}
+          </button>
+          {verificationRequest.isSuccess && (
+            <p role="status">
+              Si la cuenta necesita verificación, encontrarás el enlace en la
+              consola local de Django.
+            </p>
+          )}
+          {verificationRequest.isError && (
+            <p role="alert">
+              No se pudo preparar el enlace. Inténtalo de nuevo.
+            </p>
+          )}
+        </section>
       )}
       {orders.isLoading ? (
         <Loading label="Cargando tus pedidos…" />

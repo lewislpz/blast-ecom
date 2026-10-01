@@ -111,7 +111,25 @@ AUTH_ATTEMPT_LIMITS = {
         "source": {"limit": 10, "window_seconds": 3600},
         "identity_source": {"limit": 3, "window_seconds": 3600},
     },
+    "password_reset": {
+        "source": {"limit": 20, "window_seconds": 60},
+        "identity_source": {"limit": 3, "window_seconds": 3600},
+    },
+    "password_reset_confirm": {
+        "source": {"limit": 20, "window_seconds": 60},
+    },
+    "email_verification": {
+        "source": {"limit": 20, "window_seconds": 60},
+    },
+    "email_verification_request": {
+        "source": {"limit": 5, "window_seconds": 3600},
+    },
 }
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "blast-ecom-local@localhost"
+FRONTEND_BASE_URL = os.environ.get("BLAST_ECOM_FRONTEND_URL", "http://127.0.0.1:5173")
+ACCOUNT_TOKEN_MAX_AGE = 60 * 60
+PASSWORD_RESET_TIMEOUT = 60 * 60
 SPECTACULAR_SETTINGS = {
     "TITLE": "Blast Ecom API",
     "DESCRIPTION": "Local simulated commerce API. Real payments and sales are not supported.",

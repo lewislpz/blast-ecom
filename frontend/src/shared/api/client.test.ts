@@ -130,4 +130,54 @@ describe('same-origin API client', () => {
       new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('Idempotency-Key'),
     ).toBe('f0e63e1a-48ab-4c93-a9bb-48cf83f97925')
   })
+
+  it('sends recovery and local verification tokens only in CSRF-protected request bodies', async () => {
+    const calls: { url: string; init?: RequestInit }[] = []
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input)
+        calls.push({ url, init })
+        if (url.endsWith('/auth/csrf/'))
+          return jsonResponse({ csrf_token: 'csrf-recovery-token' })
+        if (url.endsWith('/auth/email-verification/confirm/'))
+          return jsonResponse({ verified: true })
+        return jsonResponse({
+          detail: 'Local development instructions were prepared.',
+        })
+      },
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const verificationToken = 'signed-verification-token'
+
+    await api.requestPasswordReset('demo@example.test')
+    await api.confirmPasswordReset({
+      user_id: 'account-id',
+      token: 'single-use-reset-token',
+      password: 'new-password-value',
+    })
+    await api.requestEmailVerification()
+    await api.confirmEmailVerification(verificationToken)
+
+    expect(calls.map((call) => call.url)).toEqual([
+      '/api/v1/auth/csrf/',
+      '/api/v1/auth/password-reset/',
+      '/api/v1/auth/password-reset/confirm/',
+      '/api/v1/auth/email-verification/',
+      '/api/v1/auth/email-verification/confirm/',
+    ])
+    expect(
+      calls.slice(1).every((call) => call.url.includes('token=') === false),
+    ).toBe(true)
+    expect(
+      calls
+        .slice(1)
+        .every(
+          (call) =>
+            new Headers(call.init?.headers).get('X-CSRFToken') ===
+            'csrf-recovery-token',
+        ),
+    ).toBe(true)
+    expect(calls[2]?.init?.body).toContain('single-use-reset-token')
+    expect(calls[4]?.init?.body).toContain(verificationToken)
+  })
 })

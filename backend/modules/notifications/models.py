@@ -16,6 +16,9 @@ class NotificationIntent(models.Model):
     state = models.CharField(max_length=12, choices=State.choices, default=State.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     simulated_at = models.DateTimeField(null=True, blank=True)
+    attempt_count = models.PositiveIntegerField(default=0)
+    last_attempt_at = models.DateTimeField(null=True, blank=True)
+    last_error_code = models.CharField(max_length=64, blank=True, default="")
 
     class Meta:
         constraints = [

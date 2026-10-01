@@ -1,6 +1,6 @@
 # HTTP API Standards
 
-Status: Catalog read endpoints, same-origin session/CSRF account endpoints, owner-scoped order endpoints, and PostgreSQL-backed authentication attempt limits are implemented. Registration is restricted to local DEBUG mode; password reset and public-account protections are deferred. [ADR-0017](../decisions/ADR-0017-http-api-contract.md), [ADR-0024](../decisions/ADR-0024-authentication-attempt-limits.md).
+Status: Catalog read endpoints, same-origin session/CSRF account endpoints, owner-scoped order endpoints, PostgreSQL-backed authentication attempt limits, local password recovery and demo email-verification endpoints are implemented. Registration/recovery/verification are restricted to local DEBUG mode; public-account protections remain deferred. [ADR-0017](../decisions/ADR-0017-http-api-contract.md), [ADR-0024](../decisions/ADR-0024-authentication-attempt-limits.md), [ADR-0025](../decisions/ADR-0025-local-account-recovery-and-email-verification.md).
 
 ## Contract
 
@@ -15,6 +15,10 @@ JSON under /api/v1/, lower-case plural resources, snake_case fields, UUID string
 | POST | /api/v1/auth/login/ | Public; CSRF | 200 identity and rotated session cookie |
 | POST | /api/v1/auth/logout/ | Session; CSRF | 204 and session revocation |
 | GET | /api/v1/auth/me/ | Active session | 200 own identity |
+| POST | /api/v1/auth/password-reset/ | Local DEBUG only; CSRF; throttled | 202 generic response, regardless of account eligibility |
+| POST | /api/v1/auth/password-reset/confirm/ | Local DEBUG only; CSRF; throttled | 200 after one-use token, password validation and session invalidation |
+| POST | /api/v1/auth/email-verification/ | Active local session; CSRF; throttled | 202 generic local-console response |
+| POST | /api/v1/auth/email-verification/confirm/ | Local DEBUG only; CSRF; throttled | 200 after one-use local status update |
 | GET | /api/v1/categories/ | Public, active only (implemented) | 200 paginated |
 | GET | /api/v1/products/ | Public, active only (implemented) | 200 paginated; filters: category, ordering; includes `in_stock` boolean |
 | GET | /api/v1/products/{id}/ | Public, active only (implemented) | 200 |
@@ -32,7 +36,7 @@ Health endpoints sit outside the business API version. Admin operations use Djan
 
 items is a list of product_id, quantity and expected_unit_price. delivery_address carries the documented address fields. The backend determines owner, price, currency, states and totals. Reject unknown fields; reject changed price with 409 rather than silently charging a new price. Never accept card numbers. Payment/cancel bodies are empty; simulator outcomes are not client parameters.
 
-Unsafe session and customer operations require the `X-CSRFToken` header, obtained from the no-store CSRF bootstrap endpoint. The CSRF cookie is HttpOnly; clients use the token returned in the bootstrap JSON. Fetch a fresh token after login/logout rotation. Login failures use one generic response for unknown email, wrong password and staff accounts. Customer sessions expire after 12 hours; staff sessions after one hour. Registration is available only with `DEBUG=true` and is not a public registration mechanism. Password reset endpoints do not exist.
+Unsafe session and customer operations require the `X-CSRFToken` header, obtained from the no-store CSRF bootstrap endpoint. The CSRF cookie is HttpOnly; clients use the token returned in the bootstrap JSON. Fetch a fresh token after login/logout rotation. Login failures use one generic response for unknown email, wrong password and staff accounts. Customer sessions expire after 12 hours; staff sessions after one hour. Registration, password recovery and email-verification are available only with `DEBUG=true` and are not public account mechanisms. Recovery responses do not reveal account eligibility. The local verification flag does not gate sign-in and does not prove mailbox ownership.
 
 Order creation and state-changing actions require UUIDv4 `Idempotency-Key`; keys are scoped by customer and operation. Responses include id, state, items with snapshots, subtotal, shipping_total, total, currency, expires_at and timestamps. Address is returned only in the owner's detail response. Payment response reports succeeded or failed as a domain outcome (200), not a server error. Do not include internal permission flags or hashes in customer summaries.
 

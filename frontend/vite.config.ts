@@ -11,6 +11,7 @@ export default defineConfig({
     proxy: {
       '/api': apiProxyTarget,
       '/admin': apiProxyTarget,
+      '/health': apiProxyTarget,
       '/static': apiProxyTarget,
     },
   },
