@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+from io import StringIO
+from smtplib import SMTPException
+from threading import Event, Lock
+from time import sleep
 from typing import cast
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail, signing
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import override_settings
 from rest_framework.test import APIClient
 
+from modules.users.email_outbox import process_account_email_outbox
 from modules.users.models import User
 from modules.users.recovery import EMAIL_VERIFICATION_SALT
 
@@ -368,3 +376,236 @@ def test_legacy_local_account_remains_usable_without_verification_timestamp() ->
 
     assert login.status_code == 200
     assert login.json()["email_verified"] is False
+
+
+@pytest.mark.django_db
+@override_settings(
+    DEBUG=False,
+    PUBLIC_ACCOUNT_FLOWS_ENABLED=True,
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    FRONTEND_BASE_URL="https://shop.example.test",
+    SECURE_SSL_REDIRECT=False,
+)
+def test_public_password_reset_queues_email_without_revealing_account() -> None:
+    from modules.users.models import AccountEmailOutbox
+
+    user = User.objects.create_user("public-reset@example.test", password="Original-safe-pass-123")
+    client = APIClient(enforce_csrf_checks=True)
+    token = csrf_token(client)
+    existing = client.post(
+        "/api/v1/auth/password-reset/",
+        {"email": user.email},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+    missing = client.post(
+        "/api/v1/auth/password-reset/",
+        {"email": "missing@example.test"},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+        REMOTE_ADDR="198.51.100.31",
+    )
+
+    assert existing.status_code == missing.status_code == 202
+    assert existing.json() == missing.json()
+    assert "local development" not in existing.json()["detail"]
+    assert (
+        AccountEmailOutbox.objects.filter(
+            user=user, purpose=AccountEmailOutbox.Purpose.RESET_PASSWORD
+        ).count()
+        == 1
+    )
+    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+@override_settings(
+    DEBUG=False,
+    PUBLIC_ACCOUNT_FLOWS_ENABLED=True,
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    FRONTEND_BASE_URL="https://shop.example.test",
+    SECURE_SSL_REDIRECT=False,
+)
+def test_public_verification_resend_is_generic_and_queues_only_unverified_accounts() -> None:
+    from modules.users.models import AccountEmailOutbox
+
+    user = User.objects.create_user(
+        "resend-public@example.test", password="A-long-safe-password-123"
+    )
+    client = APIClient(enforce_csrf_checks=True)
+    token = csrf_token(client)
+    existing = client.post(
+        "/api/v1/auth/email-verification/request/",
+        {"email": user.email},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+    missing = client.post(
+        "/api/v1/auth/email-verification/request/",
+        {"email": "missing@example.test"},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+        REMOTE_ADDR="198.51.100.32",
+    )
+
+    assert existing.status_code == missing.status_code == 202
+    assert existing.json() == missing.json()
+    assert (
+        AccountEmailOutbox.objects.filter(
+            user=user, purpose=AccountEmailOutbox.Purpose.VERIFY_EMAIL
+        ).count()
+        == 1
+    )
+    assert mail.outbox == []
+
+
+@pytest.mark.django_db
+@override_settings(
+    DEBUG=False,
+    PUBLIC_ACCOUNT_FLOWS_ENABLED=True,
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    FRONTEND_BASE_URL="https://shop.example.test",
+    SECURE_SSL_REDIRECT=False,
+)
+def test_account_email_outbox_retries_failure_then_delivers_without_logging_recipient(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from modules.users.models import AccountEmailOutbox
+
+    user = User.objects.create_user("private-recipient@example.test", password=None)
+    intent = AccountEmailOutbox.objects.create(
+        user=user,
+        purpose=AccountEmailOutbox.Purpose.VERIFY_EMAIL,
+    )
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "modules.users.email_outbox.send_verification_email",
+            lambda _user: (_ for _ in ()).throw(SMTPException("private mail transport detail")),
+        )
+        failure = process_account_email_outbox(limit=1)
+
+    intent.refresh_from_db()
+    assert (failure.attempted, failure.retried, failure.delivered) == (1, 1, 0)
+    assert intent.attempts == 1
+    assert intent.last_error_code == "SMTPException"
+    assert intent.delivered_at is None
+    assert "private-recipient@example.test" not in caplog.text
+    assert "private mail transport detail" not in caplog.text
+
+    intent.next_attempt_at = intent.created_at
+    intent.save(update_fields=["next_attempt_at"])
+    success = process_account_email_outbox(limit=1)
+    intent.refresh_from_db()
+    assert (success.attempted, success.delivered, success.retried) == (1, 1, 0)
+    assert intent.attempts == 2
+    assert intent.delivered_at is not None
+    assert intent.last_error_code == ""
+
+
+@pytest.mark.django_db
+@override_settings(
+    DEBUG=False,
+    PUBLIC_ACCOUNT_FLOWS_ENABLED=True,
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    FRONTEND_BASE_URL="https://shop.example.test",
+    SECURE_SSL_REDIRECT=False,
+)
+def test_account_email_outbox_dead_letters_after_bounded_attempts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from modules.users.email_outbox import MAX_ATTEMPTS
+    from modules.users.models import AccountEmailOutbox
+
+    user = User.objects.create_user("dead-letter@example.test", password=None)
+    intent = AccountEmailOutbox.objects.create(
+        user=user,
+        purpose=AccountEmailOutbox.Purpose.VERIFY_EMAIL,
+        attempts=MAX_ATTEMPTS - 1,
+    )
+    monkeypatch.setattr(
+        "modules.users.email_outbox.send_verification_email",
+        lambda _user: (_ for _ in ()).throw(SMTPException("transport failure")),
+    )
+
+    result = process_account_email_outbox(limit=1)
+    intent.refresh_from_db()
+
+    assert (result.attempted, result.dead_lettered, result.retried) == (1, 1, 0)
+    assert intent.attempts == MAX_ATTEMPTS
+    assert intent.dead_at is not None
+
+
+@pytest.mark.django_db(transaction=True)
+@override_settings(
+    DEBUG=False,
+    PUBLIC_ACCOUNT_FLOWS_ENABLED=True,
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    FRONTEND_BASE_URL="https://shop.example.test",
+    SECURE_SSL_REDIRECT=False,
+)
+def test_slow_outbox_batch_does_not_reclaim_later_messages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from modules.users import email_outbox
+    from modules.users.models import AccountEmailOutbox
+
+    intents = [
+        AccountEmailOutbox.objects.create(
+            user=User.objects.create_user(f"slow-{index}@example.test", password=None),
+            purpose=AccountEmailOutbox.Purpose.VERIFY_EMAIL,
+        )
+        for index in range(5)
+    ]
+    monkeypatch.setattr(email_outbox, "LEASE_SECONDS", 0.05)
+    first_delivery_started = Event()
+    delivered_ids: list[str] = []
+    delivered_lock = Lock()
+
+    def slow_delivery(message: AccountEmailOutbox) -> None:
+        with delivered_lock:
+            delivered_ids.append(str(message.pk))
+        first_delivery_started.set()
+        sleep(0.04)
+
+    monkeypatch.setattr(email_outbox, "_deliver", slow_delivery)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first_worker = pool.submit(process_account_email_outbox, limit=5)
+        assert first_delivery_started.wait(timeout=2)
+        sleep(0.06)
+        second_worker = pool.submit(process_account_email_outbox, limit=5)
+        first_result = first_worker.result(timeout=5)
+        second_result = second_worker.result(timeout=5)
+
+    assert first_result.attempted + second_result.attempted == len(intents)
+    assert len(delivered_ids) == len(intents)
+    assert len(set(delivered_ids)) == len(intents)
+    assert all(
+        attempts == 1 for attempts in AccountEmailOutbox.objects.values_list("attempts", flat=True)
+    )
+    assert AccountEmailOutbox.objects.filter(delivered_at__isnull=False).count() == len(intents)
+
+
+def test_account_email_outbox_command_bounds_batch_size_and_reports_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from modules.users.email_outbox import DeliveryResult
+
+    calls: list[int] = []
+
+    def process(*, limit: int) -> DeliveryResult:
+        calls.append(limit)
+        return DeliveryResult(attempted=2, delivered=1, retried=1, dead_lettered=0)
+
+    monkeypatch.setattr(
+        "modules.users.management.commands.process_account_email_outbox.process_account_email_outbox",
+        process,
+    )
+    output = StringIO()
+    call_command("process_account_email_outbox", "--batch-size=25", stdout=output)
+
+    assert calls == [25]
+    assert output.getvalue() == (
+        "account_email_outbox attempted=2 delivered=1 retried=1 dead_lettered=0.\n"
+    )
+    with pytest.raises(CommandError, match="Batch size"):
+        call_command("process_account_email_outbox", "--batch-size=1001")

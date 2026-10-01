@@ -52,6 +52,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -60,6 +61,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
+    setNotice('')
     setBusy(true)
     try {
       const account = registering
@@ -67,10 +69,15 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         : await api.login(email, password)
       setPassword('')
       if (registering) {
-        setError(
-          'Cuenta de demo creada. Ya puedes entrar; abre el enlace de verificación que aparece en la consola local de Django.',
+        setNotice(
+          'detail' in account
+            ? account.detail
+            : 'Cuenta de demo creada. Ya puedes entrar; abre el enlace de verificación que aparece en la consola local de Django.',
         )
       } else {
+        if ('detail' in account) {
+          throw new Error('Login returned an unexpected response.')
+        }
         queryClient.setQueryData(['session'], account)
         await queryClient.invalidateQueries({ queryKey: ['session'] })
         navigate('/account/orders')
@@ -104,7 +111,9 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         <h1>{registering ? 'Crea tu cuenta.' : 'Bienvenido de vuelta.'}</h1>
         <p>
           {registering
-            ? 'Crea una cuenta local de demostración.'
+            ? import.meta.env.DEV
+              ? 'Crea una cuenta local de demostración.'
+              : 'Crea una cuenta para consultar tus pedidos.'
             : 'Entra para consultar tus pedidos.'}
         </p>
         <form className="form-stack" onSubmit={submit}>
@@ -131,19 +140,18 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           />
           {registering && (
             <p className="field-hint">
-              Al menos 12 caracteres. La cuenta se crea sólo para esta demo
-              local.
+              {import.meta.env.DEV
+                ? 'Al menos 12 caracteres. La cuenta se crea sólo para esta demo local.'
+                : 'Al menos 12 caracteres. Confirma el correo para activar la cuenta.'}
+            </p>
+          )}
+          {notice && (
+            <p className="notice notice-success" role="status">
+              {notice}
             </p>
           )}
           {error && (
-            <p
-              className={
-                registering && error.startsWith('Cuenta')
-                  ? 'notice notice-success'
-                  : 'notice notice-error'
-              }
-              role="alert"
-            >
+            <p className="notice notice-error" role="alert">
               {error}
             </p>
           )}
@@ -168,8 +176,11 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           </p>
         )}
         <p className="demo-copy">
-          La creación de cuentas está disponible únicamente en el entorno local
-          de demostración.
+          {import.meta.env.DEV
+            ? 'La creación de cuentas está disponible únicamente en el entorno local de demostración.'
+            : registering
+              ? 'Necesitarás confirmar el correo antes de iniciar sesión.'
+              : 'Si aún no tienes una cuenta, puedes crearla y confirmar el correo.'}
         </p>
       </section>
     </main>
@@ -194,7 +205,9 @@ export function PasswordResetRequestPage() {
     try {
       await api.requestPasswordReset(email)
       setMessage(
-        'Si la cuenta puede recuperarse, encontrarás las instrucciones en la consola local de Django.',
+        import.meta.env.DEV
+          ? 'Si la cuenta puede recuperarse, encontrarás las instrucciones en la consola local de Django.'
+          : 'Si existe una cuenta elegible, recibirás instrucciones en su correo electrónico.',
       )
     } catch (cause) {
       setError(messageFor(cause))
@@ -213,7 +226,11 @@ export function PasswordResetRequestPage() {
           <br />
           importante.
         </h2>
-        <p>Enviaremos las instrucciones a la consola local de Django.</p>
+        <p>
+          {import.meta.env.DEV
+            ? 'Enviaremos las instrucciones a la consola local de Django.'
+            : 'Enviaremos instrucciones al correo asociado a la cuenta.'}
+        </p>
       </div>
       <section className="auth-panel">
         <Link to="/login" className="back-link">
@@ -256,8 +273,9 @@ export function PasswordResetRequestPage() {
           </button>
         </form>
         <p className="demo-copy">
-          Esta función sólo está habilitada para desarrollo local; no envía
-          correo real.
+          {import.meta.env.DEV
+            ? 'Esta función sólo está habilitada para desarrollo local; no envía correo real.'
+            : 'Por seguridad, la respuesta no revela si una cuenta existe.'}
         </p>
       </section>
     </main>
@@ -369,6 +387,7 @@ export function EmailVerificationPage() {
   const [token, setToken] = useState(
     () => fragmentValues(location.hash).token ?? '',
   )
+  const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -388,8 +407,31 @@ export function EmailVerificationPage() {
     setBusy(true)
     try {
       await api.confirmEmailVerification(token)
-      setMessage('La cuenta local ha quedado marcada como verificada.')
+      setMessage(
+        import.meta.env.DEV
+          ? 'La cuenta local ha quedado marcada como verificada.'
+          : 'Tu correo ha quedado verificado. Ya puedes iniciar sesión.',
+      )
       setToken('')
+    } catch (cause) {
+      setError(messageFor(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function requestVerification(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+    setBusy(true)
+    try {
+      await api.requestPublicEmailVerification(email)
+      setMessage(
+        import.meta.env.DEV
+          ? 'Si la cuenta necesita verificación, encontrarás el enlace en la consola local de Django.'
+          : 'Si la cuenta necesita verificación, enviaremos un enlace a su correo electrónico.',
+      )
     } catch (cause) {
       setError(messageFor(cause))
     } finally {
@@ -400,18 +442,42 @@ export function EmailVerificationPage() {
   return (
     <main className="page-container page-content">
       <PageIntro
-        kicker="Cuenta local"
-        title="Verifica el correo de demostración."
+        kicker={import.meta.env.DEV ? 'Cuenta local' : 'Verificación de cuenta'}
+        title={
+          token
+            ? 'Confirma tu dirección de correo.'
+            : 'Verifica tu dirección de correo.'
+        }
       />
-      <p>
-        Este paso actualiza únicamente el estado de la cuenta local. No
-        demuestra la propiedad de un buzón real.
-      </p>
-      {message ? null : !token ? (
-        <p className="notice notice-error" role="alert">
-          El enlace no es válido o ya no está disponible. Solicita uno nuevo
-          desde tu cuenta.
+      {import.meta.env.DEV && (
+        <p>
+          Este paso sólo actualiza la cuenta local y no demuestra la propiedad
+          de un buzón real.
         </p>
+      )}
+      {message ? null : !token ? (
+        <form
+          className="form-stack account-form"
+          onSubmit={requestVerification}
+        >
+          <p>
+            Introduce el correo que utilizaste para registrarte. La respuesta no
+            revelará si la cuenta existe.
+          </p>
+          <label htmlFor="verification-email">Correo electrónico</label>
+          <input
+            id="verification-email"
+            type="email"
+            autoComplete="email"
+            maxLength={254}
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+          <button className="button button-dark" type="submit" disabled={busy}>
+            {busy ? 'Enviando…' : 'Enviar enlace de verificación'}
+          </button>
+        </form>
       ) : (
         <button
           className="button button-dark"
@@ -419,7 +485,11 @@ export function EmailVerificationPage() {
           disabled={busy || Boolean(message)}
           onClick={verify}
         >
-          {busy ? 'Verificando…' : 'Confirmar verificación local'}
+          {busy
+            ? 'Verificando…'
+            : import.meta.env.DEV
+              ? 'Confirmar verificación local'
+              : 'Confirmar correo'}
         </button>
       )}
       {message && (

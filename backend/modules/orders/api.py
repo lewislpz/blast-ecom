@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from django.conf import settings
 from django.db.models import QuerySet
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
@@ -52,7 +53,14 @@ class IsActiveCustomer(BasePermission):
     def has_permission(self, request: Request, view: APIView) -> bool:
         user = request.user
         return bool(
-            user.is_authenticated and user.is_active and not user.is_staff and not user.is_superuser
+            user.is_authenticated
+            and user.is_active
+            and not user.is_staff
+            and not user.is_superuser
+            and (
+                not settings.REQUIRE_VERIFIED_CUSTOMER_EMAIL
+                or getattr(user, "email_verified_at", None) is not None
+            )
         )
 
 

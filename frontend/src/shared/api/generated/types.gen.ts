@@ -338,6 +338,25 @@ export type V1AuthEmailVerificationConfirmCreateResponses = {
 
 export type V1AuthEmailVerificationConfirmCreateResponse = V1AuthEmailVerificationConfirmCreateResponses[keyof V1AuthEmailVerificationConfirmCreateResponses];
 
+export type V1AuthEmailVerificationRequestCreateData = {
+    body: PasswordResetRequest;
+    headers: {
+        /**
+         * Django CSRF token obtained from /api/v1/auth/csrf/.
+         */
+        'X-CSRFToken': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/email-verification/request/';
+};
+
+export type V1AuthEmailVerificationRequestCreateResponses = {
+    202: PasswordResetRequested;
+};
+
+export type V1AuthEmailVerificationRequestCreateResponse = V1AuthEmailVerificationRequestCreateResponses[keyof V1AuthEmailVerificationRequestCreateResponses];
+
 export type V1AuthLoginCreateData = {
     body: LoginRequestWritable;
     headers: {
@@ -480,6 +499,7 @@ export type V1AuthRegisterCreateError = V1AuthRegisterCreateErrors[keyof V1AuthR
 
 export type V1AuthRegisterCreateResponses = {
     201: Account;
+    202: PasswordResetRequested;
 };
 
 export type V1AuthRegisterCreateResponse = V1AuthRegisterCreateResponses[keyof V1AuthRegisterCreateResponses];

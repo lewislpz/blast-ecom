@@ -3,16 +3,24 @@
 import os
 from pathlib import Path
 
+from config.production import (
+    parse_boolean,
+    parse_trusted_proxy_cidrs,
+    validate_production_configuration,
+)
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
-DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() == "true"
+DEBUG = parse_boolean(os.environ.get("DJANGO_DEBUG"), name="DJANGO_DEBUG", default=False)
 if not SECRET_KEY:
     raise RuntimeError("DJANGO_SECRET_KEY must be set; see docs/development/local-development.md.")
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    for host in os.environ.get(
+        "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1" if DEBUG else ""
+    ).split(",")
     if host.strip()
 ]
 
@@ -43,6 +51,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "modules.common.middleware.RequestIdMiddleware",
+    "modules.common.middleware.TrustedProxyHeadersMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "modules.common.middleware.DatabaseUnavailableMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -98,22 +107,34 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "modules.common.api_errors.problem_detail_exception_handler",
 }
+_public_account_flows_enabled = parse_boolean(
+    os.environ.get("BLAST_ECOM_PUBLIC_ACCOUNT_FLOWS_ENABLED"),
+    name="BLAST_ECOM_PUBLIC_ACCOUNT_FLOWS_ENABLED",
+    default=False,
+)
+PUBLIC_ACCOUNT_FLOWS_ENABLED = _public_account_flows_enabled
+REQUIRE_VERIFIED_CUSTOMER_EMAIL = not DEBUG
+
 AUTH_ATTEMPT_LIMITS = {
     "login": {
         "source": {"limit": 30, "window_seconds": 60},
         "identity_source": {"limit": 5, "window_seconds": 900},
+        "identity_global": {"limit": 10, "window_seconds": 900},
     },
     "admin_login": {
         "source": {"limit": 30, "window_seconds": 60},
         "identity_source": {"limit": 5, "window_seconds": 900},
+        "identity_global": {"limit": 10, "window_seconds": 900},
     },
     "registration": {
         "source": {"limit": 10, "window_seconds": 3600},
         "identity_source": {"limit": 3, "window_seconds": 3600},
+        "identity_global": {"limit": 3, "window_seconds": 3600},
     },
     "password_reset": {
         "source": {"limit": 20, "window_seconds": 60},
         "identity_source": {"limit": 3, "window_seconds": 3600},
+        "identity_global": {"limit": 5, "window_seconds": 3600},
     },
     "password_reset_confirm": {
         "source": {"limit": 20, "window_seconds": 60},
@@ -123,11 +144,32 @@ AUTH_ATTEMPT_LIMITS = {
     },
     "email_verification_request": {
         "source": {"limit": 5, "window_seconds": 3600},
+        "identity_global": {"limit": 5, "window_seconds": 3600},
     },
 }
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "blast-ecom-local@localhost"
-FRONTEND_BASE_URL = os.environ.get("BLAST_ECOM_FRONTEND_URL", "http://127.0.0.1:5173")
+EMAIL_BACKEND = os.environ.get(
+    "DJANGO_EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend"
+    if DEBUG
+    else "django.core.mail.backends.dummy.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DJANGO_DEFAULT_FROM_EMAIL", "blast-ecom-local@localhost" if DEBUG else ""
+)
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587" if not DEBUG else "25"))
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = parse_boolean(
+    os.environ.get("DJANGO_EMAIL_USE_TLS"), name="DJANGO_EMAIL_USE_TLS", default=not DEBUG
+)
+EMAIL_USE_SSL = parse_boolean(
+    os.environ.get("DJANGO_EMAIL_USE_SSL"), name="DJANGO_EMAIL_USE_SSL", default=False
+)
+EMAIL_TIMEOUT = int(os.environ.get("DJANGO_EMAIL_TIMEOUT", "10"))
+FRONTEND_BASE_URL = os.environ.get(
+    "BLAST_ECOM_FRONTEND_URL", "http://127.0.0.1:5173" if DEBUG else ""
+)
 ACCOUNT_TOKEN_MAX_AGE = 60 * 60
 PASSWORD_RESET_TIMEOUT = 60 * 60
 SPECTACULAR_SETTINGS = {
@@ -160,6 +202,45 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_HTTPONLY = True
 DATA_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024
+TRUSTED_PROXY_CIDRS = parse_trusted_proxy_cidrs(
+    os.environ.get("BLAST_ECOM_TRUSTED_PROXY_CIDRS", "")
+)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if TRUSTED_PROXY_CIDRS else None
+SECURE_SSL_REDIRECT = not DEBUG
+SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "0" if DEBUG else "86400"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+USE_X_FORWARDED_HOST = False
+USE_X_FORWARDED_PORT = False
+DATABASE_SSLMODE = os.environ.get("DATABASE_SSLMODE", "" if DEBUG else "verify-full")
+DATABASE_SSLROOTCERT = os.environ.get("DATABASE_SSLROOTCERT", "")
+if DATABASE_SSLMODE:
+    database_options = {"sslmode": DATABASE_SSLMODE}
+    if DATABASE_SSLROOTCERT:
+        database_options["sslrootcert"] = DATABASE_SSLROOTCERT
+    DATABASES["default"]["OPTIONS"] = database_options
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    validate_production_configuration(
+        {
+            "SECRET_KEY": SECRET_KEY,
+            "ALLOWED_HOSTS": ALLOWED_HOSTS,
+            "CSRF_TRUSTED_ORIGINS": CSRF_TRUSTED_ORIGINS,
+            "FRONTEND_BASE_URL": FRONTEND_BASE_URL,
+            "SECURE_HSTS_SECONDS": SECURE_HSTS_SECONDS,
+            "DATABASE_SSLMODE": DATABASE_SSLMODE,
+            "PUBLIC_ACCOUNT_FLOWS_ENABLED": PUBLIC_ACCOUNT_FLOWS_ENABLED,
+            "EMAIL_BACKEND": EMAIL_BACKEND,
+            "EMAIL_HOST": EMAIL_HOST,
+            "EMAIL_PORT": EMAIL_PORT,
+            "EMAIL_HOST_USER": EMAIL_HOST_USER,
+            "EMAIL_HOST_PASSWORD": EMAIL_HOST_PASSWORD,
+            "EMAIL_USE_TLS": EMAIL_USE_TLS,
+            "EMAIL_USE_SSL": EMAIL_USE_SSL,
+            "DEFAULT_FROM_EMAIL": DEFAULT_FROM_EMAIL,
+        }
+    )

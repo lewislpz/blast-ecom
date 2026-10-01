@@ -95,6 +95,35 @@ def test_login_identity_bucket_isolated_by_source_address() -> None:
 
 
 @pytest.mark.django_db
+def test_login_global_identity_bucket_applies_across_source_addresses() -> None:
+    client = APIClient()
+    limits = {
+        "login": {
+            "source": {"limit": 30, "window_seconds": 60},
+            "identity_source": {"limit": 30, "window_seconds": 60},
+            "identity_global": {"limit": 1, "window_seconds": 60},
+        }
+    }
+
+    with override_settings(AUTH_ATTEMPT_LIMITS=limits):
+        first = client.post(
+            "/api/v1/auth/login/",
+            {"email": "customer@example.test", "password": "wrong-password"},
+            format="json",
+            REMOTE_ADDR="198.51.100.1",
+        )
+        blocked = client.post(
+            "/api/v1/auth/login/",
+            {"email": "customer@example.test", "password": "wrong-password"},
+            format="json",
+            REMOTE_ADDR="198.51.100.2",
+        )
+
+    assert first.status_code == 400
+    assert blocked.status_code == 429
+
+
+@pytest.mark.django_db
 def test_login_source_limit_applies_across_different_emails() -> None:
     client = APIClient()
     limits = {

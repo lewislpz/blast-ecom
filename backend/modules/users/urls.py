@@ -9,6 +9,7 @@ from modules.users.api import (
     LogoutView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
+    PublicEmailVerificationRequestView,
     RegisterView,
 )
 
@@ -25,6 +26,11 @@ urlpatterns = [
         "auth/email-verification/",
         EmailVerificationRequestView.as_view(),
         name="email-verification-request",
+    ),
+    path(
+        "auth/email-verification/request/",
+        PublicEmailVerificationRequestView.as_view(),
+        name="public-email-verification-request",
     ),
     path(
         "auth/email-verification/confirm/",

@@ -64,7 +64,7 @@ test.describe('local customer purchase journey', () => {
     await page.getByLabel('Correo electrónico').fill(email)
     await page.getByLabel('Contraseña').fill(password)
     await page.getByRole('button', { name: 'Crear cuenta' }).click()
-    await expect(page.getByRole('alert')).toContainText('Cuenta de demo creada')
+    await expect(page.getByRole('status')).toContainText('Cuenta de demo creada')
     await page.getByRole('link', { name: 'Entra aquí' }).click()
 
     await page.getByLabel('Correo electrónico').fill(email)

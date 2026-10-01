@@ -94,7 +94,10 @@ def consume_auth_attempts(*, scope: str, source: str, identity: str | None) -> t
 
     candidates = [("source", source)]
     if identity is not None:
-        candidates.append(("identity_source", f"{source}\0{identity}"))
+        if "identity_source" in policies:
+            candidates.append(("identity_source", f"{source}\0{identity}"))
+        if "identity_global" in policies:
+            candidates.append(("identity_global", identity))
 
     allowed = True
     retry_after = 0

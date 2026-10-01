@@ -20,6 +20,7 @@ from rest_framework.views import APIView
 
 from modules.common.exceptions import DomainOperationError
 from modules.common.serializers import ProblemDetailSerializer
+from modules.users.email_outbox import enqueue_account_email
 from modules.users.models import User
 from modules.users.recovery import (
     reset_password,
@@ -49,6 +50,10 @@ CSRF_HEADER = OpenApiParameter(
 )
 
 
+def account_flows_available() -> bool:
+    return settings.DEBUG or settings.PUBLIC_ACCOUNT_FLOWS_ENABLED
+
+
 def account_payload(user: User) -> dict[str, str | bool]:
     return {
         "id": str(user.pk),
@@ -76,7 +81,7 @@ class RegisterView(APIView):
     throttle_scope = "registration"
 
     def get_throttles(self) -> list[BaseThrottle]:
-        if not settings.DEBUG:
+        if not account_flows_available():
             return []
         return super().get_throttles()
 
@@ -85,6 +90,7 @@ class RegisterView(APIView):
         request=RegisterRequestSerializer,
         responses={
             201: AccountSerializer,
+            202: PasswordResetRequestedSerializer,
             (400, "application/problem+json"): ProblemDetailSerializer,
             (403, "application/problem+json"): ProblemDetailSerializer,
             (409, "application/problem+json"): ProblemDetailSerializer,
@@ -92,12 +98,42 @@ class RegisterView(APIView):
         },
     )
     def post(self, request: Request) -> Response:
-        if not settings.DEBUG:
+        if not account_flows_available():
             raise DomainOperationError(status_code=404, code="NOT_FOUND")
         serializer = RegisterRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
+        if not settings.DEBUG:
+            candidate = User(email=email)
+            candidate.set_password(password)
+            if User.objects.filter(email=email).exists():
+                return Response(
+                    {
+                        "detail": (
+                            "If this address can be registered, check its inbox for instructions."
+                        )
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
+            try:
+                with transaction.atomic():
+                    candidate.save()
+                    enqueue_account_email(user=candidate, purpose="verify_email")
+            except IntegrityError:
+                return Response(
+                    {
+                        "detail": (
+                            "If this address can be registered, check its inbox for instructions."
+                        )
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
+            return Response(
+                {"detail": "If this address can be registered, check its inbox for instructions."},
+                status=status.HTTP_202_ACCEPTED,
+            )
+
         if User.objects.filter(email=email).exists():
             raise DomainOperationError(status_code=409, code="ACCOUNT_UNAVAILABLE")
         try:
@@ -117,7 +153,7 @@ class PasswordResetRequestView(APIView):
     throttle_scope = "password_reset"
 
     def get_throttles(self) -> list[BaseThrottle]:
-        if not settings.DEBUG:
+        if not account_flows_available():
             return []
         return super().get_throttles()
 
@@ -127,7 +163,7 @@ class PasswordResetRequestView(APIView):
         responses={202: PasswordResetRequestedSerializer},
     )
     def post(self, request: Request) -> Response:
-        if not settings.DEBUG:
+        if not account_flows_available():
             raise DomainOperationError(status_code=404, code="NOT_FOUND")
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -138,14 +174,21 @@ class PasswordResetRequestView(APIView):
             is_superuser=False,
         ).first()
         if user is not None and user.has_usable_password():
-            send_local_password_reset_email(user)
+            if settings.DEBUG:
+                send_local_password_reset_email(user)
+            else:
+                enqueue_account_email(user=user, purpose="reset_password")
+        detail = (
+            "If the account is eligible, password reset instructions were sent "
+            "to the local development email console."
+            if settings.DEBUG
+            else (
+                "If an eligible account exists, password reset instructions will be sent "
+                "to its email address."
+            )
+        )
         return Response(
-            {
-                "detail": (
-                    "If the account is eligible, password reset instructions were sent "
-                    "to the local development email console."
-                )
-            },
+            {"detail": detail},
             status=status.HTTP_202_ACCEPTED,
         )
 
@@ -158,7 +201,7 @@ class PasswordResetConfirmView(APIView):
     throttle_scope = "password_reset_confirm"
 
     def get_throttles(self) -> list[BaseThrottle]:
-        if not settings.DEBUG:
+        if not account_flows_available():
             return []
         return super().get_throttles()
 
@@ -171,7 +214,7 @@ class PasswordResetConfirmView(APIView):
         },
     )
     def post(self, request: Request) -> Response:
-        if not settings.DEBUG:
+        if not account_flows_available():
             raise DomainOperationError(status_code=404, code="NOT_FOUND")
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -195,7 +238,13 @@ class PasswordResetConfirmView(APIView):
         ):
             raise DomainOperationError(status_code=400, code="PASSWORD_RESET_INVALID")
         return Response(
-            {"detail": "The local demo password has been reset."},
+            {
+                "detail": (
+                    "The local demo password has been reset."
+                    if settings.DEBUG
+                    else "Your password has been reset."
+                )
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -208,7 +257,7 @@ class EmailVerificationConfirmView(APIView):
     throttle_scope = "email_verification"
 
     def get_throttles(self) -> list[BaseThrottle]:
-        if not settings.DEBUG:
+        if not account_flows_available():
             return []
         return super().get_throttles()
 
@@ -221,7 +270,7 @@ class EmailVerificationConfirmView(APIView):
         },
     )
     def post(self, request: Request) -> Response:
-        if not settings.DEBUG:
+        if not account_flows_available():
             raise DomainOperationError(status_code=404, code="NOT_FOUND")
         serializer = EmailVerificationConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -264,6 +313,68 @@ class EmailVerificationRequestView(APIView):
 
 
 @method_decorator(csrf_protect, name="dispatch")
+class PublicEmailVerificationRequestView(APIView):
+    authentication_classes: tuple[()] = ()
+    permission_classes = (AllowAny,)
+    throttle_classes = (AuthenticationAttemptThrottle,)
+    throttle_scope = "email_verification_request"
+
+    def get_throttles(self) -> list[BaseThrottle]:
+        if not account_flows_available():
+            return []
+        return super().get_throttles()
+
+    @extend_schema(
+        parameters=[CSRF_HEADER],
+        request=PasswordResetRequestSerializer,
+        responses={202: PasswordResetRequestedSerializer},
+    )
+    def post(self, request: Request) -> Response:
+        if not account_flows_available():
+            raise DomainOperationError(status_code=404, code="NOT_FOUND")
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if not settings.DEBUG:
+            user = User.objects.filter(
+                email=serializer.validated_data["email"],
+                is_active=True,
+                is_staff=False,
+                is_superuser=False,
+                email_verified_at__isnull=True,
+            ).first()
+            if user is not None:
+                enqueue_account_email(user=user, purpose="verify_email")
+            return Response(
+                {
+                    "detail": (
+                        "If the account needs verification, instructions will be sent "
+                        "to its email address."
+                    )
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+
+        user = User.objects.filter(
+            email=serializer.validated_data["email"],
+            is_active=True,
+            is_staff=False,
+            is_superuser=False,
+            email_verified_at__isnull=True,
+        ).first()
+        if user is not None:
+            send_local_verification_email(user)
+        return Response(
+            {
+                "detail": (
+                    "If the account needs verification, instructions were sent "
+                    "to the local development email console."
+                )
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
+
+
+@method_decorator(csrf_protect, name="dispatch")
 class LoginView(APIView):
     authentication_classes: tuple[()] = ()
     permission_classes = (AllowAny,)
@@ -289,7 +400,12 @@ class LoginView(APIView):
             email=User.objects.normalize_email(serializer.validated_data["email"]),
             password=serializer.validated_data["password"],
         )
-        if user is None or user.is_staff or user.is_superuser:
+        if (
+            user is None
+            or user.is_staff
+            or user.is_superuser
+            or (settings.REQUIRE_VERIFIED_CUSTOMER_EMAIL and user.email_verified_at is None)
+        ):
             raise DomainOperationError(status_code=400, code="AUTH_INVALID")
         login(django_request, user)
         return Response(account_payload(user))

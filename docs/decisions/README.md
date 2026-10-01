@@ -32,6 +32,7 @@
 | [ADR-0026](ADR-0026-local-notification-processing.md) | Restart-Safe Local Notification Processing | Accepted | 2026-10-01 |
 | [ADR-0027](ADR-0027-local-postgresql-backup-and-restore.md) | Safe Local PostgreSQL Backup and Restore | Accepted | 2026-10-01 |
 | [ADR-0028](ADR-0028-local-application-container-workflow.md) | Local Application Container Workflow | Accepted | 2026-10-01 |
+| [ADR-0029](ADR-0029-public-account-security-and-email-delivery.md) | Public Account Security and Email Delivery Boundary | Accepted | 2026-10-01 |
 
 ## Policy
 

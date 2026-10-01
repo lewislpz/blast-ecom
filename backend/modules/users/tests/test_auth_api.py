@@ -3,9 +3,12 @@ from __future__ import annotations
 import pytest
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.core import signing
+from django.core.mail import EmailMessage
 from django.test import override_settings
 from rest_framework.test import APIClient
 
+from modules.users.email_outbox import process_account_email_outbox
 from modules.users.models import User
 
 
@@ -137,6 +140,103 @@ def test_registration_is_disabled_outside_local_debug_mode() -> None:
     assert response.status_code == 404
     assert response.json()["code"] == "NOT_FOUND"
     assert User.objects.count() == 0
+
+
+@pytest.mark.django_db
+@override_settings(
+    DEBUG=False,
+    PUBLIC_ACCOUNT_FLOWS_ENABLED=True,
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    FRONTEND_BASE_URL="https://shop.example.test",
+    SECURE_SSL_REDIRECT=False,
+    AUTH_ATTEMPT_LIMITS={
+        "registration": {
+            "source": {"limit": 30, "window_seconds": 3600},
+            "identity_source": {"limit": 30, "window_seconds": 3600},
+            "identity_global": {"limit": 30, "window_seconds": 3600},
+        }
+    },
+)
+def test_public_registration_is_generic_and_sends_mailbox_verification(
+    mailoutbox: list[EmailMessage],
+) -> None:
+    client = APIClient(enforce_csrf_checks=True)
+    token = csrf_token(client)
+    existing = User.objects.create_user(
+        "existing@example.test", password="A-long-safe-password-123"
+    )
+    payload = {"email": "new@example.test", "password": "A-long-safe-password-123"}
+
+    created = client.post(
+        "/api/v1/auth/register/",
+        payload,
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+    duplicate = client.post(
+        "/api/v1/auth/register/",
+        {"email": existing.email, "password": "A-long-safe-password-123"},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+
+    assert created.status_code == duplicate.status_code == 202
+    assert created.json() == duplicate.json()
+    assert "If this address can be registered" in created.json()["detail"]
+    assert User.objects.filter(email="new@example.test").exists()
+    assert mailoutbox == []
+    from modules.users.models import AccountEmailOutbox
+
+    assert AccountEmailOutbox.objects.count() == 1
+    result = process_account_email_outbox(limit=10)
+    assert (result.attempted, result.delivered, result.retried) == (1, 1, 0)
+    assert len(mailoutbox) == 1
+    assert mailoutbox[0].to == ["new@example.test"]
+    assert "does not prove ownership" not in mailoutbox[0].body
+
+
+@pytest.mark.django_db
+@override_settings(
+    DEBUG=False,
+    PUBLIC_ACCOUNT_FLOWS_ENABLED=True,
+    REQUIRE_VERIFIED_CUSTOMER_EMAIL=True,
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    FRONTEND_BASE_URL="https://shop.example.test",
+    SECURE_SSL_REDIRECT=False,
+)
+def test_public_login_requires_verified_email_but_local_demo_does_not() -> None:
+    user = User.objects.create_user("unverified@example.test", password="A-long-safe-password-123")
+    client = APIClient(enforce_csrf_checks=True)
+    token = csrf_token(client)
+
+    denied = client.post(
+        "/api/v1/auth/login/",
+        {"email": user.email, "password": "A-long-safe-password-123"},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+
+    assert denied.status_code == 400
+    assert denied.json()["code"] == "AUTH_INVALID"
+
+    verification = signing.dumps(
+        {"user_id": str(user.pk), "email": user.email},
+        salt="blast-ecom.email-verification.v1",
+    )
+    verified = client.post(
+        "/api/v1/auth/email-verification/confirm/",
+        {"token": verification},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+    assert verified.status_code == 200
+    accepted = client.post(
+        "/api/v1/auth/login/",
+        {"email": user.email, "password": "A-long-safe-password-123"},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+    assert accepted.status_code == 200
 
 
 @pytest.mark.django_db

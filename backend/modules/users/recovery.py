@@ -19,39 +19,61 @@ def _frontend_link(path: str, fragment: str) -> str:
     return f"{base_url}{path}#{fragment}"
 
 
-def send_local_verification_email(user: User) -> None:
+def send_verification_email(user: User) -> int:
     token = signing.dumps(
         {"user_id": str(user.pk), "email": user.email},
         salt=EMAIL_VERIFICATION_SALT,
     )
     link = _frontend_link("/verify-email", f"token={token}")
-    send_mail(
-        subject="Verify your Blast Ecom demo email",
+    local_note = (
+        "This link only marks the email address as verified in this local demo. "
+        "It does not prove ownership of a real mailbox.\n\n"
+        if settings.DEBUG
+        else "Confirm that you control this email address to activate your account.\n\n"
+    )
+    return send_mail(
+        subject=(
+            "Verify your Blast Ecom demo email"
+            if settings.DEBUG
+            else "Verify your Blast Ecom email address"
+        ),
+        message=f"{local_note}Open: {link}\n",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+
+def send_password_reset_email(user: User) -> int:
+    token = default_token_generator.make_token(user)
+    link = _frontend_link("/reset-password", f"user_id={user.pk}&token={token}")
+    local_note = (
+        "A password reset was requested for a local Blast Ecom demo account. "
+        if settings.DEBUG
+        else "A password reset was requested for your Blast Ecom account. "
+    )
+    return send_mail(
+        subject=(
+            "Reset your Blast Ecom demo password"
+            if settings.DEBUG
+            else "Reset your Blast Ecom password"
+        ),
         message=(
-            "This link only marks the email address as verified in this local demo. "
-            "It does not prove ownership of a real mailbox.\n\n"
+            f"{local_note}If you did not request this, you can ignore this message.\n\n"
             f"Open: {link}\n"
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
-        fail_silently=True,
+        fail_silently=False,
     )
+
+
+def send_local_verification_email(user: User) -> None:
+    send_verification_email(user)
 
 
 def send_local_password_reset_email(user: User) -> None:
-    token = default_token_generator.make_token(user)
-    link = _frontend_link("/reset-password", f"user_id={user.pk}&token={token}")
-    send_mail(
-        subject="Reset your Blast Ecom demo password",
-        message=(
-            "A password reset was requested for a local Blast Ecom demo account. "
-            "If you did not request this, you can ignore this message.\n\n"
-            f"Open: {link}\n"
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=True,
-    )
+    send_password_reset_email(user)
 
 
 def verify_email_token(token: str) -> bool:

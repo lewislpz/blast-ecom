@@ -46,14 +46,14 @@ The reviewed Group-admin privilege-escalation path is closed in the current impl
 
 ## In Progress
 
-Production-readiness hardening is in progress. The first slice reconciles readiness documentation and implements production account/email/proxy controls. Provider-backed payment, hosted backup/DR, CI and deployment/operations follow as separately verified increments. The application is not ready for public or real-customer use.
+Production-readiness hardening is in progress. The local account experience remains unchanged; fail-closed production settings, explicit trusted-proxy parsing, cross-source identity limits, verified-account enforcement and a bounded SMTP outbox are implemented. The 153-test PostgreSQL backend suite, frontend checks/build, read-only Chromium accessibility E2E and independent security review pass. SMTP has only been exercised through a test backend. Provider-backed payment, hosted backup/DR, CI and deployment/operations remain later increments. The application is not ready for public or real-customer use.
 
 ## Pending Decisions
 
 See the [decision register](roadmap/decision-register.md) for complete trigger-based deferrals.
 
 - Implementation details: remaining API contract details and empirical query plans.
-- Before public accounts: production-safe settings, allow-listed proxy parsing, cross-source identity abuse controls, verified mailbox ownership and delivery reliability, shared/edge volumetric controls, staff MFA/access restrictions and privacy retention. Development email workflows do not satisfy these production gates.
+- Before public accounts: externally validate production settings and proxy topology; verify SMTP/sender-domain delivery; supervise and alert on outbox work; establish shared/edge volumetric controls, staff MFA/access restrictions, privacy retention/erasure and a production security review. Application-level verified-email gating is implemented but does not satisfy these operational gates.
 - Before real sales: markets/jurisdiction, taxes/invoicing, actual shipping charges/coverage and fulfillment.
 - Before hosted operations: provider/account/credentials, secrets/TLS/networking, encrypted/versioned backup and restore drill, agreed RPO/RTO, SLOs and actionable monitoring. Provider-independent code and disposable-service tests can be built before an account is available.
 - Conditional: broker/cache, external payments/events, tracing, Kubernetes/Helm/GitOps/Terraform and scaling.
@@ -66,7 +66,7 @@ No blocker for local development. Real public operation still requires provider 
 
 ## Known Issues
 
-Git is initialized on `main` and tracks `origin/main`; current HEAD `f28e48c` is clean and synchronized with `origin/main`. External notification delivery, hosted backup/restore and production deployment remain unimplemented.
+External notification delivery, hosted backup/restore and production deployment remain unimplemented. Production-hardening work is committed locally as increments; no push or hosted deployment is performed.
 
 ## Technical Debt
 

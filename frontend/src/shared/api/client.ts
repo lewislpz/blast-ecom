@@ -110,7 +110,10 @@ export const api = {
       throw error
     }
   },
-  async register(email: string, password: string): Promise<Account> {
+  async register(
+    email: string,
+    password: string,
+  ): Promise<Account | { detail: string }> {
     return request<Account>('/auth/register/', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -142,6 +145,14 @@ export const api = {
   },
   async requestEmailVerification(): Promise<{ detail: string }> {
     return request('/auth/email-verification/', { method: 'POST' })
+  },
+  async requestPublicEmailVerification(
+    email: string,
+  ): Promise<{ detail: string }> {
+    return request('/auth/email-verification/request/', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
   },
   async confirmEmailVerification(
     token: string,

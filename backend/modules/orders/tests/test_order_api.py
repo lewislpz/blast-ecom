@@ -99,6 +99,26 @@ def test_order_api_requires_session_csrf_and_idempotency_key(shop: tuple[User, P
 
 
 @pytest.mark.django_db
+@override_settings(DEBUG=False, REQUIRE_VERIFIED_CUSTOMER_EMAIL=True)
+def test_unverified_customer_cannot_create_public_order(shop: tuple[User, Product]) -> None:
+    user, product = shop
+    client, token = authenticated_client(user)
+
+    response = client.post(
+        "/api/v1/orders/",
+        order_payload(product),
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+        HTTP_IDEMPOTENCY_KEY=str(uuid4()),
+    )
+
+    assert response.status_code == 403
+    assert Order.objects.count() == 0
+    stock = StockItem.objects.get(product=product)
+    assert (stock.on_hand, stock.reserved) == (3, 0)
+
+
+@pytest.mark.django_db
 @override_settings(
     DEBUG=True,
     CSRF_TRUSTED_ORIGINS=["http://127.0.0.1:5173"],
