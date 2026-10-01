@@ -1,6 +1,6 @@
 # HTTP API Standards
 
-Status: Catalog read endpoints, same-origin session/CSRF account endpoints, and owner-scoped order endpoints are implemented. Registration is restricted to local DEBUG mode; password reset and public-account protections are deferred. [ADR-0017](../decisions/ADR-0017-http-api-contract.md).
+Status: Catalog read endpoints, same-origin session/CSRF account endpoints, owner-scoped order endpoints, and PostgreSQL-backed authentication attempt limits are implemented. Registration is restricted to local DEBUG mode; password reset and public-account protections are deferred. [ADR-0017](../decisions/ADR-0017-http-api-contract.md), [ADR-0024](../decisions/ADR-0024-authentication-attempt-limits.md).
 
 ## Contract
 
@@ -47,6 +47,8 @@ Use application/problem+json per RFC 9457: type (about:blank initially), title, 
 The implemented DRF exception handler emits this media type for handled API errors, creates a server-side request ID and maps validation errors to `field_errors`. A 64 KiB request body cap applies to `/api/v1/`. The generated schema at `backend/openapi.yaml` documents CSRF and idempotency headers; regenerate and validate it with `uv run python manage.py spectacular --file openapi.yaml --validate` from `backend/`.
 
 400 malformed/invalid input; 403 unauthenticated or forbidden session requests (consistent with DRF SessionAuthentication), including CSRF; 404 absent or inaccessible resources; 409 state/stock/price/idempotency conflict; 429 throttled; 503 temporary dependency failure. Distinguish AUTH_REQUIRED from PERMISSION_DENIED and CSRF_FAILED by code. API clients use code, not English prose. Infrastructure errors get a server-generated request_id in X-Request-ID; inbound arbitrary IDs are not trusted.
+
+Customer login and local registration may return HTTP 429 Problem Details with `code=RATE_LIMITED` and `Retry-After` when a configured PostgreSQL fixed-window limit is exceeded. The Django Admin login uses the same attempt policy and returns a generic 429 response. Counters are shared across app processes and store only HMAC-pseudonymous keys. Database errors fail closed through the generic 503 handling. These are application-level abuse controls, not protection against distributed attacks or volumetric denial of service.
 
 ## Evolution
 

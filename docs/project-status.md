@@ -1,14 +1,14 @@
 # Blast Ecom Project Status
 
-Updated: 2026-09-30
+Updated: 2026-10-01
 
 ## Current Phase
 
-Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, session/CSRF authentication, owner-scoped order APIs, customer browser journey and PostgreSQL-only local Compose workflow are implemented. Local development completion is in final security-gate closeout; hosted/public readiness is explicitly out of scope.
+Phase 1 — Core Domain & Application Foundation. Runtime, catalog/inventory, transactional order operations, session/CSRF authentication, owner-scoped order APIs, customer browser journey, PostgreSQL-only local Compose workflow and application-level authentication attempt limits are implemented. The auth-control increment is undergoing required independent review and final gate closeout; hosted/public readiness is explicitly out of scope.
 
 ## Current Objective
 
-Local development slice is complete: the independent review, security remediation, full verification matrix, documentation reconciliation and high-risk closeout gates are recorded.
+Close the PostgreSQL-backed authentication abuse-control increment with independent security review, refreshed evidence and a local commit; then continue the remaining account-recovery and notification-development work without treating public/production readiness as complete.
 
 ## Completed
 
@@ -16,7 +16,7 @@ Local development slice is complete: the independent review, security remediatio
 - ADR-0013 through ADR-0021: nine grouped decisions selected by Codex under explicit user delegation on 2026-09-28.
 - Product lifecycle, data model/locks, account/admin policy, API/idempotency, frontend, tooling, local runtime, testing, migrations and observability specifications.
 - Initial threat model, acceptance matrix, decision register and decision report.
-- Twenty-one Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
+- Twenty-three Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
 - Backend and frontend dependency locks, checks and starter scaffolds.
 - Custom UUID-keyed Django user model with normalized unique email and generated initial migration.
 - Fresh PostgreSQL 17.11 connectivity verified through a temporary Docker container; all migrations, including `users.0001_initial`, applied successfully.
@@ -35,19 +35,20 @@ Local development slice is complete: the independent review, security remediatio
 - Task-7 local acceptance rerun: backend 73 PostgreSQL tests, Django system/migration checks, Ruff, formatting and mypy passed; frontend 5 unit/component tests, typecheck, lint, formatting, build and production dependency audit passed; OpenAPI TypeScript regeneration produced no diff; full Chromium purchase and accessibility E2E passed against a fresh PostgreSQL database on a temporary in-memory filesystem. CSRF tests reject untrusted Origin across unsafe customer auth/order API routes.
 - PostgreSQL-only Compose service uses a loopback-bound port, explicit health check and persistent named volume; fresh migrations, safe fictional seed, and bounded maintenance commands are implemented.
 - Database readiness performs a live query; API database connectivity failures return a generic 503. Seed and maintenance commands require local DEBUG configuration; seeding additionally requires an explicit environment opt-in.
+- PostgreSQL-backed HMAC-pseudonymous authentication attempt limits cover customer login, DEBUG-only registration and Django Admin login. Fixed-window counters are atomic, bounded at `limit + 1`, cleaned up by bounded local maintenance and tested for concurrency, CSRF ordering, privacy and failure behavior.
 
-The reviewed Group-admin privilege-escalation path is closed in the current implementation: ordinary staff cannot access Group administration, while active staff superusers retain break-glass access. Password reset/email verification, shared auth abuse controls, notification delivery, backups and deployment remain unimplemented. API registration is local DEBUG-only; no public-account or production readiness is claimed.
+The reviewed Group-admin privilege-escalation path is closed in the current implementation: ordinary staff cannot access Group administration, while active staff superusers retain break-glass access. Password reset/email verification and external notification delivery remain unimplemented; current auth attempt limits are application-level only. Backups and hosted deployment remain unimplemented. API registration is local DEBUG-only; no public-account or production readiness is claimed.
 
 ## In Progress
 
-Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implemented, reviewed, remediated and verified. Task task-5 — browser journey: implemented, verified, checkpointed and committed. Task task-6 — local PostgreSQL and maintenance: implemented, verified, checkpointed and committed locally. Task task-7 — whole-slice acceptance, documentation, independent review and high-risk gates: complete for local development.
+Task task-1 — scaffold and runtime compatibility: complete. Task task-2 — catalog/inventory: complete. Task task-3 — order/reservation/payment/idempotency domain operations: complete. Task task-4 — session/CSRF and owner-scoped API: implemented, reviewed, remediated and verified. Task task-5 — browser journey: implemented, verified, checkpointed and committed locally. Task task-6 — local PostgreSQL and maintenance: implemented, verified, checkpointed and committed locally. Task task-7 — whole-slice acceptance: complete for the previously accepted local scope. Current workspace task-1 — auth abuse controls: implemented and tested; independent review, final gates and commit are in progress.
 
 ## Pending Decisions
 
 See the [decision register](roadmap/decision-register.md) for complete trigger-based deferrals.
 
 - Implementation details: remaining API contract details and empirical query plans.
-- Before public accounts: real email verification/reset, shared abuse controls, staff MFA/access restrictions and privacy retention.
+- Before public accounts: real email verification/reset, trusted proxy parsing, edge/shared abuse controls and monitoring, staff MFA/access restrictions and privacy retention.
 - Before real sales: markets/jurisdiction, taxes/invoicing, actual shipping charges/coverage and fulfillment.
 - Before hosted operations: environments/provider/budget, secrets/TLS/networking, backup/restore, RPO/RTO, SLOs and actionable monitoring.
 - Conditional: broker/cache, external payments/events, tracing, Kubernetes/Helm/GitOps/Terraform and scaling.
@@ -60,7 +61,7 @@ No known blocker for the documented local-development scope. Shared/public deplo
 
 ## Known Issues
 
-Git is initialized on `main` and tracks `origin/main`; the core API, browser and local PostgreSQL/maintenance increments are committed locally and have not been pushed. Notification delivery and deployment remain unimplemented.
+Git is initialized on `main` and tracks `origin/main`; the core API, browser and local PostgreSQL/maintenance increments are committed locally and have not been pushed. External notification delivery, backup/restore automation and hosted deployment remain unimplemented.
 
 ## Technical Debt
 
@@ -86,8 +87,9 @@ Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles
 
 ## Next Steps
 
-1. Select the next product capability from the roadmap when ready.
-2. Keep hosted deployment blocked until public-account and production-operation controls are designed and verified.
+1. Complete independent review, gate evidence, binding and local commit for authentication attempt limits.
+2. Continue account recovery/email and notification development with a local-only delivery path unless a production provider is explicitly available.
+3. Keep hosted deployment blocked until provider/budget, public-account controls and production recovery/operations are designed and verified.
 
 ## Latest Report
 

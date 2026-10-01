@@ -1,13 +1,13 @@
 # Roadmap
 
-Status: Proposed sequencing with an accepted local first-slice baseline. Phase 0 is current; no application implementation is authorized by this document. See the [decision report](../reports/2026-09-28-phase0-decisions.md) and [first slice](../development/first-slice.md).
+Status: Proposed sequencing; Phase 0 is complete and the local first slice is implemented. Phase 1 — Core Domain & Application Foundation — is the current phase. See the [decision report](../reports/2026-09-28-phase0-decisions.md) and [first slice](../development/first-slice.md).
 
 | Phase | Intended outcome | Entry condition |
 |---|---|---|
-| 0 — Product Definition & Architecture | Initial local scope, domain rules, security and tool baseline documented | Current phase; 21 Accepted ADRs |
-| 1 — Core Domain & Application Foundation | A tested, small end-to-end increment | Baseline ready; bounded code plan and implementation request still needed |
-| 2 — Local Platform | Reproducible local execution | Actual application dependencies exist |
-| 3 — Testing & Quality | Broader behavior and contract verification | Runnable application |
+| 0 — Product Definition & Architecture | Initial local scope, domain rules, security and tool baseline documented | Complete; 23 Accepted ADRs and one Superseded ADR |
+| 1 — Core Domain & Application Foundation | Tested local commerce journey and core abuse controls | Current phase; authentication-limit increment in verification |
+| 2 — Local Platform | Reproducible local execution | Complete for PostgreSQL-backed local development |
+| 3 — Testing & Quality | Behavior, contract and browser verification | Core checks implemented; continue as features evolve |
 | 4 — Continuous Integration | Automated agreed checks | Local checks are meaningful and stable |
 | 5 — Registry & Release Management | Versioned, reproducible artifacts | Packaging and release strategy selected |
 | 6 — Deployment Platform Evaluation | Suitable deployment and rollback | Application, local runtime and CI work |

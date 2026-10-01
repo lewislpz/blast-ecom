@@ -1,6 +1,6 @@
 # Security Baseline
 
-Status: Accepted security design with catalog/admin controls and initial customer session/CSRF/order API controls implemented and targeted-tested. Group administration is restricted to active staff superusers as a break-glass path. [ADR-0016](../decisions/ADR-0016-identity-and-administration.md), [ADR-0023](../decisions/ADR-0023-break-glass-group-administration.md).
+Status: Local-development controls for catalog/admin permissions, customer session/CSRF/order APIs, Group administration and PostgreSQL-backed login/registration attempt limits are implemented and targeted-tested. Group administration is restricted to active staff superusers as a break-glass path. [ADR-0016](../decisions/ADR-0016-identity-and-administration.md), [ADR-0023](../decisions/ADR-0023-break-glass-group-administration.md), [ADR-0024](../decisions/ADR-0024-authentication-attempt-limits.md).
 
 ## Identity
 
@@ -39,7 +39,9 @@ Django admin is the initial internal UI; React remains the customer UI. Implemen
 
 Secrets/config via environment, ignored local env files and example placeholders only. Backend fails fast for missing required configuration. Never expose secrets through VITE_ variables. DEBUG disabled outside local tests; allowlisted hosts and trusted origins; parameterized ORM queries and plain-text descriptions (no arbitrary HTML).
 
-No authentication throttling is currently configured. Before public exposure, choose and validate shared auth throttling, staff MFA/access restrictions, real mail/verification, TLS and security headers (including a CSP matching built assets). No claim that those controls already exist.
+Customer login and local registration use atomic PostgreSQL fixed-window counters keyed by HMAC-SHA-256 digests of source and (when available) normalized identity. Django Admin login shares the same policy. Current defaults are configurable and provisional: login 30/minute per source and 5/15 minutes per source+identity; local registration 10/hour per source and 3/hour per source+identity. Invalid CSRF requests do not consume quota. PostgreSQL failures fail closed. The cleanup runs only through the DEBUG/local-database maintenance command.
+
+These app-level controls help with common single-source guessing but do not prevent distributed attacks, proxy identity spoofing/misconfiguration, or volumetric denial of service. Only `REMOTE_ADDR` is trusted today; forwarded headers are intentionally ignored until trusted proxy configuration exists. Before public exposure, add a reviewed edge/shared abuse-control strategy and monitoring, staff MFA/access restrictions, real email ownership flows, TLS and security headers (including a CSP matching built assets). No public readiness is claimed.
 
 ## Sources
 

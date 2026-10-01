@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from django.http import JsonResponse
 from django.views.defaults import page_not_found, server_error
-from rest_framework.exceptions import ErrorDetail, NotAuthenticated, PermissionDenied
+from rest_framework.exceptions import ErrorDetail, NotAuthenticated, PermissionDenied, Throttled
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
@@ -126,6 +126,9 @@ def problem_detail_exception_handler(exc: Exception, context: dict[str, Any]) ->
     if isinstance(exc, NotAuthenticated):
         detail = "Authentication is required."
         error_code = "AUTH_REQUIRED"
+    elif isinstance(exc, Throttled):
+        detail = "Too many requests. Try again later."
+        error_code = "RATE_LIMITED"
     elif (
         isinstance(exc, PermissionDenied)
         and isinstance(data, dict)

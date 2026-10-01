@@ -8,6 +8,7 @@ from django.core.management.base import BaseCommand, CommandError
 from modules.common.operations import delete_expired_idempotency_records
 from modules.notifications.services import simulate_pending_intents
 from modules.orders.services import expire_due_orders
+from modules.users.throttling import delete_expired_auth_attempt_buckets
 
 
 class Command(BaseCommand):
@@ -37,10 +38,12 @@ class Command(BaseCommand):
             expired = expire_due_orders(limit=batch_size)
             simulated = simulate_pending_intents(limit=batch_size)
             cleaned = delete_expired_idempotency_records(limit=batch_size)
+            throttle_buckets = delete_expired_auth_attempt_buckets(limit=batch_size)
             self.stdout.write(
                 f"Maintenance pass complete: expired_orders={expired} "
                 f"simulated_notification_intents={simulated} "
-                f"deleted_expired_idempotency_records={cleaned}."
+                f"deleted_expired_idempotency_records={cleaned} "
+                f"deleted_expired_auth_attempt_buckets={throttle_buckets}."
             )
             if run_once:
                 return

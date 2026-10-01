@@ -12,6 +12,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import BaseThrottle
 from rest_framework.views import APIView
 
 from modules.common.exceptions import DomainOperationError
@@ -23,6 +24,7 @@ from modules.users.serializers import (
     LoginRequestSerializer,
     RegisterRequestSerializer,
 )
+from modules.users.throttling import AuthenticationAttemptThrottle
 
 CSRF_HEADER = OpenApiParameter(
     name="X-CSRFToken",
@@ -52,6 +54,13 @@ class CsrfBootstrapView(APIView):
 class RegisterView(APIView):
     authentication_classes: tuple[()] = ()
     permission_classes = (AllowAny,)
+    throttle_classes = (AuthenticationAttemptThrottle,)
+    throttle_scope = "registration"
+
+    def get_throttles(self) -> list[BaseThrottle]:
+        if not settings.DEBUG:
+            return []
+        return super().get_throttles()
 
     @extend_schema(
         parameters=[CSRF_HEADER],
@@ -61,6 +70,7 @@ class RegisterView(APIView):
             (400, "application/problem+json"): ProblemDetailSerializer,
             (403, "application/problem+json"): ProblemDetailSerializer,
             (409, "application/problem+json"): ProblemDetailSerializer,
+            (429, "application/problem+json"): ProblemDetailSerializer,
         },
     )
     def post(self, request: Request) -> Response:
@@ -84,6 +94,8 @@ class RegisterView(APIView):
 class LoginView(APIView):
     authentication_classes: tuple[()] = ()
     permission_classes = (AllowAny,)
+    throttle_classes = (AuthenticationAttemptThrottle,)
+    throttle_scope = "login"
 
     @extend_schema(
         parameters=[CSRF_HEADER],
@@ -92,6 +104,7 @@ class LoginView(APIView):
             200: AccountSerializer,
             (400, "application/problem+json"): ProblemDetailSerializer,
             (403, "application/problem+json"): ProblemDetailSerializer,
+            (429, "application/problem+json"): ProblemDetailSerializer,
         },
     )
     def post(self, request: Request) -> Response:

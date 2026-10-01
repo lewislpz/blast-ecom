@@ -16,7 +16,7 @@ from modules.orders.models import Order
 from modules.orders.services import create_order
 from modules.products.models import Category, Product
 from modules.products.services import save_product
-from modules.users.models import User
+from modules.users.models import AuthAttemptBucket, User
 
 
 @pytest.mark.django_db(transaction=True)
@@ -65,6 +65,12 @@ def test_local_maintenance_restarts_and_converges_without_repeating_effects() ->
         response_body={"code": "expired"},
         expires_at=database_now() - timedelta(seconds=1),
     )
+    expired_auth_bucket = AuthAttemptBucket.objects.create(
+        bucket_key="a" * 64,
+        window_started_at=database_now() - timedelta(minutes=2),
+        attempts=1,
+        expires_at=database_now() - timedelta(seconds=1),
+    )
 
     call_command("run_local_maintenance", "--once", "--batch-size", "10")
 
@@ -75,6 +81,7 @@ def test_local_maintenance_restarts_and_converges_without_repeating_effects() ->
     assert (stock.on_hand, stock.reserved, stock.available) == (1, 0, 1)
     assert reservation.state == Reservation.State.RELEASED
     assert not IdempotencyRecord.objects.filter(key=expired_key).exists()
+    assert not AuthAttemptBucket.objects.filter(pk=expired_auth_bucket.pk).exists()
     assert (
         NotificationIntent.objects.filter(
             order=order, state=NotificationIntent.State.SIMULATED, simulated_at__isnull=False

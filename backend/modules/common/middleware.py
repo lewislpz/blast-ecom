@@ -78,4 +78,10 @@ class DatabaseUnavailableMiddleware:
                 code="SERVICE_UNAVAILABLE",
                 detail="The service is temporarily unavailable.",
             )
+        if request.path.startswith("/admin/") and isinstance(exception, OperationalError):
+            return HttpResponse(
+                "The service is temporarily unavailable.",
+                status=503,
+                content_type="text/plain; charset=utf-8",
+            )
         return None

@@ -16,13 +16,13 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 - Durable append-only audit entries and transactional notification intents for order lifecycle transitions.
 - RFC 9457 Problem Details for DRF errors; OpenAPI generation and validation for the catalog contract.
 - Locked backend and frontend dependencies, generated OpenAPI TypeScript contracts, lint/type/test/build commands, PostgreSQL-backed backend tests, frontend behavior/API-client tests and browser E2E purchase coverage.
-- Same-origin session authentication with CSRF bootstrap, login/logout/current-user; local registration is available only when `DEBUG=true`.
+- Same-origin session authentication with CSRF bootstrap, login/logout/current-user; PostgreSQL-backed source and source+identity attempt limits protect customer and Django Admin login, while local registration is available only when `DEBUG=true` and separately limited.
 - Owner-scoped order list/create/detail/payment-simulation/cancel APIs, idempotency headers, strict request validation, 64 KiB request cap, Problem Details and generated OpenAPI.
 - PostgreSQL-only local Compose service, explicit Django migrations and idempotent fictional catalog seed, database readiness endpoint and restartable bounded expiry/notification-simulation/idempotency maintenance.
 
 ## Planned
 
-Password reset, email verification, shared authentication abuse controls and staff MFA are not implemented; public account use is not ready. Payments, taxes, shipping, and notifications remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
+Password reset and email verification are not implemented; public account use is not ready. Application attempt limits reduce common single-source guessing but do not replace trusted-proxy configuration, edge-level controls, staff MFA, or monitoring required before public exposure. Payments, taxes, shipping, and notification delivery remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
 
 ## Architecture and Stack
 

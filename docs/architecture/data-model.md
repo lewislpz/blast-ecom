@@ -1,6 +1,6 @@
 # Initial Data Model
 
-Status: User, Category, Product, StockItem, StockAdjustment, Reservation, Order, OrderItem, PaymentAttempt, NotificationIntent, IdempotencyRecord and AuditEntry models/migrations are implemented and tested on PostgreSQL 17.11. Customer session/API integration and notification delivery/retention maintenance remain pending. [ADR-0015](../decisions/ADR-0015-data-model-conventions.md).
+Status: User, authentication-attempt buckets, Category, Product, StockItem, StockAdjustment, Reservation, Order, OrderItem, PaymentAttempt, NotificationIntent, IdempotencyRecord and AuditEntry models/migrations are implemented and tested on PostgreSQL 17.11. Customer session/API integration is implemented; notification intents are processed as local simulations, while external delivery is outside the local v1 scope. [ADR-0015](../decisions/ADR-0015-data-model-conventions.md), [ADR-0024](../decisions/ADR-0024-authentication-attempt-limits.md).
 
 ## Common Conventions
 
@@ -10,7 +10,7 @@ Domain records use UUIDv4 primary keys, UTC created_at and updated_at where muta
 
 | Module | Record | Principal fields and constraints |
 |---|---|---|
-| Users | User | Custom user from first migration; UUID, normalized email with DB uniqueness, password hash, active/staff flags and Django groups/permissions |
+| Users | User, AuthAttemptBucket | Custom user with UUID/normalized unique email/password hash/roles; HMAC-keyed bounded fixed-window authentication counters with expiry index |
 | Products | Category | UUID, unique slug, name, active flag; one category per product initially |
 | Products | Product | UUID, unique SKU, category FK, title, plain-text description, EUR unit_price, active, optional bundled image key |
 | Inventory | StockItem | One-to-one product FK, on_hand, reserved; integer checks on_hand >= 0, reserved >= 0, reserved <= on_hand |
@@ -51,6 +51,6 @@ available = on_hand - reserved. Expired-but-not-released reservations remain cou
 
 Migration ordering follows FK dependencies (Orders before Inventory reservations, etc.) without changing module ownership. Initial user model must precede dependent auth migrations.
 
-References: [Django transactions](https://docs.djangoproject.com/en/5.2/topics/db/transactions/), [row locks](https://docs.djangoproject.com/en/5.2/ref/models/querysets/#select-for-update), [Python UUID](https://docs.python.org/3.13/library/uuid.html). Catalog, inventory and order workflow constraints/operations have PostgreSQL integration coverage, including lock contention, replay, terminal transitions and rollback. HTTP ownership/CSRF and browser flows remain unimplemented.
+References: [Django transactions](https://docs.djangoproject.com/en/5.2/topics/db/transactions/), [row locks](https://docs.djangoproject.com/en/5.2/ref/models/querysets/#select-for-update), [Python UUID](https://docs.python.org/3.13/library/uuid.html). Catalog, inventory and order workflow constraints/operations have PostgreSQL integration coverage, including lock contention, replay, terminal transitions and rollback. HTTP ownership/CSRF, browser purchase flow and authentication throttling are implemented and covered by tests.
 
 Deadline clock semantics: [PostgreSQL current date/time functions](https://www.postgresql.org/docs/17/functions-datetime.html).

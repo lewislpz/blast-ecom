@@ -20,3 +20,15 @@ class User(AbstractUser):
     def save(self, *args: Any, **kwargs: Any) -> None:
         self.email = UserManager.normalize_email(self.email)
         super().save(*args, **kwargs)
+
+
+class AuthAttemptBucket(models.Model):
+    """Pseudonymous fixed-window counter shared by application processes."""
+
+    bucket_key = models.CharField(max_length=64, primary_key=True)
+    window_started_at = models.DateTimeField()
+    attempts = models.PositiveIntegerField()
+    expires_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        db_table = "users_auth_attempt_bucket"

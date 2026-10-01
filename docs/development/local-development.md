@@ -64,7 +64,7 @@ The application settings read process environment variables; they do not parse `
    uv run python manage.py run_local_maintenance --interval-seconds 10 --batch-size 100
    ```
 
-   Stop it with Ctrl-C; restart with the same command. Each bounded pass expires due orders and releases their reservations, marks pending notification intents as locally simulated (no email/SMS is sent), and removes expired idempotency records. Run `--once` for a single pass. It never deletes orders, customers, audit entries or notification intents.
+   Stop it with Ctrl-C; restart with the same command. Each bounded pass expires due orders and releases their reservations, marks pending notification intents as locally simulated (no email/SMS is sent), and removes expired idempotency and authentication-attempt records. Run `--once` for a single pass. It never deletes orders, customers, audit entries or notification intents.
 
 The browser is at `http://127.0.0.1:5173`; database readiness is exposed at `http://127.0.0.1:8000/health/ready/`. Readiness checks a live `SELECT 1` connection, not migration state. API operations return a generic 503 Problem Details response when PostgreSQL is unavailable; the response does not expose database errors.
 

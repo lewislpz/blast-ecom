@@ -1,6 +1,6 @@
 # Decision Register and Deferred Gates
 
-Updated: 2026-09-28. Decisions 0013–0021 were made by Codex under explicit user delegation for this round, not individually approved by the user. [ADR index](../decisions/README.md).
+Updated: 2026-10-01. Decisions 0013–0021 were made by Codex under explicit user delegation for that round; ADR-0024 was selected under the owner's current autonomous implementation delegation. [ADR index](../decisions/README.md).
 
 ## Current Baseline — DECIDED
 
@@ -15,8 +15,9 @@ Updated: 2026-09-28. Decisions 0013–0021 were made by Codex under explicit use
 | Tooling/local | Runtime lines, uv/npm, native apps + Compose PostgreSQL | ADR-0019 |
 | Quality | Test pyramid, PostgreSQL concurrency, migration procedure, GitHub Flow policy | ADR-0020 |
 | Operations | Logs/audit, health checks, maintenance; defer distribution | ADR-0021 |
+| Authentication abuse controls | Atomic PostgreSQL fixed-window limits for customer/Admin login and local registration | ADR-0024 |
 
-These choices supplement, not supersede, ADR-0001 through ADR-0012. No app capability is Implemented.
+These choices supplement, not supersede, ADR-0001 through ADR-0012. Runtime completion is tracked in [project status](../project-status.md); accepted design alone is not evidence that a capability is implemented.
 
 ## Provisional Configurable Defaults — DECIDED for Local Simulation
 
@@ -43,7 +44,7 @@ Routine implementation choices can follow the accepted conventions; substantive 
 | Guest checkout, variants, multiple warehouses/currencies/sellers | DEFERRED | Validated scope change |
 | Public SEO strategy / server rendering | DEFERRED | Search acquisition goals; current SPA limitations acknowledged |
 | Email verification/reset delivery provider | DEFERRED | Before public account use |
-| Public shared auth throttling, staff MFA/access policy | DEFERRED | Before internet exposure |
+| Trusted proxy parsing, edge/shared abuse controls, monitoring and staff MFA/access policy | DEFERRED | Before internet exposure; current PostgreSQL app limits only mitigate common single-source guessing |
 | Privacy retention/erasure and audit retention | DEFERRED | Before real personal data |
 | Redis/cache | DEFERRED | Measured latency/hot paths or an explicit shared-state requirement |
 | RabbitMQ/Celery/integration events | DEFERRED | Durable external work or measured separation needs |

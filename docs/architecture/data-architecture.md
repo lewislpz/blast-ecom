@@ -1,6 +1,6 @@
 # Data Architecture
 
-Status: Accepted design, not implemented.
+Status: Accepted data design implemented for the local modular monolith: PostgreSQL schema ownership, Django ORM/migrations and transactional order workflows are active. Hosted recovery and availability design remain deferred.
 
 ## Organization and Ownership
 
@@ -18,4 +18,4 @@ Notification intent is recorded atomically, delivery happens later. Stock correc
 
 Review migrations, test clean/upgrade paths, prefer expand/contract and forward repairs; see [migration policy](../development/migrations.md). Shared FKs and recovery scope are deliberate initial tradeoffs, not technical debt by themselves. Service extraction would require explicit data/contract migration.
 
-No database, migration, backup or restore test exists. Before hosted real data: concrete roles, secrets, backup/restore, retention and availability objectives must be decided and verified.
+PostgreSQL integration and migration-drift checks exist. Automated backup/restore testing does not. Before hosted real data: concrete roles, secrets, backup/restore, retention and availability objectives must be designed and verified.

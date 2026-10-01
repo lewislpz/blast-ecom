@@ -27,6 +27,7 @@
 | [ADR-0021](ADR-0021-operations-baseline-and-deferrals.md) | Operational Baseline and Deferred Infrastructure | Accepted | 2026-09-28 |
 | [ADR-0022](ADR-0022-api-type-generator.md) | Frontend OpenAPI Type Generator | Accepted | 2026-09-30 |
 | [ADR-0023](ADR-0023-break-glass-group-administration.md) | Break-Glass Group Administration | Accepted | 2026-09-30 |
+| [ADR-0024](ADR-0024-authentication-attempt-limits.md) | Authentication Attempt Limits | Accepted | 2026-10-01 |
 
 ## Policy
 

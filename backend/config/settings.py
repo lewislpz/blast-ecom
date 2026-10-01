@@ -24,7 +24,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "modules.users.admin_config.BlastEcomAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -97,6 +97,20 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "modules.common.api_errors.problem_detail_exception_handler",
+}
+AUTH_ATTEMPT_LIMITS = {
+    "login": {
+        "source": {"limit": 30, "window_seconds": 60},
+        "identity_source": {"limit": 5, "window_seconds": 900},
+    },
+    "admin_login": {
+        "source": {"limit": 30, "window_seconds": 60},
+        "identity_source": {"limit": 5, "window_seconds": 900},
+    },
+    "registration": {
+        "source": {"limit": 10, "window_seconds": 3600},
+        "identity_source": {"limit": 3, "window_seconds": 3600},
+    },
 }
 SPECTACULAR_SETTINGS = {
     "TITLE": "Blast Ecom API",

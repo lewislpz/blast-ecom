@@ -271,6 +271,7 @@ export type V1AuthLoginCreateData = {
 export type V1AuthLoginCreateErrors = {
     400: ProblemDetail;
     403: ProblemDetail;
+    429: ProblemDetail;
 };
 
 export type V1AuthLoginCreateError = V1AuthLoginCreateErrors[keyof V1AuthLoginCreateErrors];
@@ -345,6 +346,7 @@ export type V1AuthRegisterCreateErrors = {
     400: ProblemDetail;
     403: ProblemDetail;
     409: ProblemDetail;
+    429: ProblemDetail;
 };
 
 export type V1AuthRegisterCreateError = V1AuthRegisterCreateErrors[keyof V1AuthRegisterCreateErrors];

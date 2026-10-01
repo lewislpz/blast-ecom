@@ -1,6 +1,6 @@
 # V1 Scope
 
-Status: Accepted target, not implemented. ADR-0001 establishes the intermediate store; ADR-0013 through ADR-0021 refine behavior under delegated authority.
+Status: Accepted local v1 target; the core simulated purchase journey is implemented. ADR-0001 establishes the intermediate store; ADR-0013 through ADR-0021 refine behavior under delegated authority.
 
 ## Included
 
@@ -27,4 +27,4 @@ Destination markets, actual taxes/invoicing, shipping charges/coverage, email ve
 
 ## Delivery
 
-The [first slice](../development/first-slice.md) defines small ordered increments. No implementation is performed or authorized by recording this design. Production readiness is separate from functional completeness.
+The [first slice](../development/first-slice.md) records the ordered local implementation increments and their current status. Production readiness is separate from functional completeness.
