@@ -197,7 +197,7 @@ export const api = {
       key,
     )
   },
-  async simulatePayment(
+  async startPayment(
     id: string,
     key: string,
   ): Promise<PaymentOperationResponse> {

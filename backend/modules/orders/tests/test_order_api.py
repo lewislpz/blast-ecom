@@ -303,7 +303,7 @@ def test_order_actions_reject_client_outcome_and_do_not_leak_non_owner_keys(
     )
 
     assert invalid.status_code == 400
-    assert result.status_code == 200
+    assert result.status_code == 200, result.json()
     assert result.json()["payment"]["outcome"] == "succeeded"
     assert "card" not in str(result.json()).lower()
     stock = StockItem.objects.get(product=product)

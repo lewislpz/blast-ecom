@@ -4,7 +4,7 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 
 ## Current Status
 
-**Phase 1 — Core Domain & Application Foundation.** Catalog/inventory, transactional orders, session/CSRF APIs, local account recovery/demo verification, customer browser journey, local console notifications and PostgreSQL backup/restore are implemented. Docker Compose now provides the local API, frontend, maintenance worker and PostgreSQL workflow. This is not production-ready commerce.
+**Phase 3 — Testing & pre-production hardening.** The local development slice is complete. A Stripe-hosted sandbox integration is implemented and covered by provider-boundary tests and a mocked browser redirect; a real Stripe sandbox account/webhook run, hosted backups, CI and hosted operations remain unverified or unimplemented. This is not production-ready commerce.
 
 ## Implemented
 
@@ -19,12 +19,13 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 - Same-origin session authentication with CSRF bootstrap, login/logout/current-user; PostgreSQL-backed source and source+identity attempt limits protect customer and Django Admin login, while local registration is available only when `DEBUG=true` and separately limited.
 - DEBUG-only local password recovery and demo email-verification flows use Django's console email backend; reset/verification links never appear in API responses, and demo verification does not claim mailbox ownership or block local sign-in.
 - Owner-scoped order list/create/detail/payment-simulation/cancel APIs, idempotency headers, strict request validation, 64 KiB request cap, Problem Details and generated OpenAPI.
+- Stripe sandbox Checkout adapter uses server-owned order snapshots, hosted card entry, signed authorization webhooks, manual capture, idempotent receipts and late/mismatched authorization cancellation. Real provider delivery has not yet been tested; live payments are not supported.
 - Local Compose API, Vite frontend, PostgreSQL and maintenance worker; locked app dependencies, explicit Django migrations, idempotent fictional catalog seed, database readiness endpoint and restartable bounded expiry/notification processing.
 - DEBUG-only local PostgreSQL custom-format backup and restore with restrictive file permissions, no-overwrite backup paths and fresh-database-only targets.
 
 ## Planned
 
-Hosted deployment and real external notification delivery are not implemented. Public account use is not ready: local console email does not prove mailbox ownership, and application attempt limits do not replace trusted-proxy configuration, edge-level controls, staff MFA, or monitoring required before public exposure. Payments, taxes and shipping remain simulated or explicitly unspecified. Real sales and public deployment are out of scope.
+Hosted deployment, hosted backup/recovery and real external notification delivery are not implemented. Public account use is not ready: SMTP delivery and application attempt limits do not replace trusted-proxy validation, edge-level controls, staff MFA or monitoring required before public exposure. Payments are limited to local simulation or an unverified sandbox integration; live settlement is unsupported. Taxes, shipping charges and fulfillment remain unspecified. Real sales and public deployment are out of scope.
 
 ## Architecture and Stack
 

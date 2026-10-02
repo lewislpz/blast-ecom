@@ -9,6 +9,7 @@ from django.db.models import F, Q
 class Order(models.Model):
     class State(models.TextChoices):
         AWAITING_PAYMENT = "awaiting_payment", "Awaiting payment"
+        PAYMENT_PROCESSING = "payment_processing", "Payment processing"
         CONFIRMED = "confirmed", "Confirmed"
         FAILED = "failed", "Failed"
         CANCELLED = "cancelled", "Cancelled"
@@ -46,7 +47,14 @@ class Order(models.Model):
         constraints = [
             models.CheckConstraint(
                 condition=Q(
-                    state__in=["awaiting_payment", "confirmed", "failed", "cancelled", "expired"]
+                    state__in=[
+                        "awaiting_payment",
+                        "payment_processing",
+                        "confirmed",
+                        "failed",
+                        "cancelled",
+                        "expired",
+                    ]
                 ),
                 name="orders_state_valid",
             ),

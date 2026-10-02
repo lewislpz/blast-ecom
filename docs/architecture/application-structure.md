@@ -13,7 +13,7 @@ backend/
     products/             Category/Product records, owner operations, public read API, staff catalog admin (implemented)
     inventory/            StockItem, Reservation, adjustments and owner operations (implemented)
     orders/               Order snapshots, state transitions, checkout/cancel/expiry operations (implemented)
-    payments/             One-attempt local deterministic simulator (implemented)
+    payments/             Local DEBUG simulator plus Stripe sandbox adapter/webhook (implemented; no live processing)
     notifications/        Durable transition intent records and local simulated processing (implemented; external delivery deferred)
   common/                 Problem Details, audit trail and scoped idempotency infrastructure (implemented)
   tests/                  Shared backend test support (planned)

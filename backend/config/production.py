@@ -105,6 +105,19 @@ def validate_production_configuration(configuration: Mapping[str, object]) -> No
     if configuration.get("DATABASE_SSLMODE") != "verify-full":
         raise ImproperlyConfigured("Production DATABASE_SSLMODE must be verify-full.")
 
+    payment_provider = configuration.get("PAYMENT_PROVIDER", "disabled")
+    if payment_provider == "simulator":
+        raise ImproperlyConfigured("The simulated payment provider is DEBUG-only.")
+    if payment_provider not in {"stripe_sandbox", "disabled"}:
+        raise ImproperlyConfigured(
+            "Production payment provider must be disabled or Stripe sandbox."
+        )
+    if payment_provider == "stripe_sandbox":
+        if not str(configuration.get("STRIPE_SECRET_KEY", "")).startswith("sk_test_"):
+            raise ImproperlyConfigured("Stripe sandbox requires a Stripe test-mode secret key.")
+        if not str(configuration.get("STRIPE_WEBHOOK_SECRET", "")).startswith("whsec_"):
+            raise ImproperlyConfigured("Stripe sandbox requires a webhook signing secret.")
+
     if configuration.get("PUBLIC_ACCOUNT_FLOWS_ENABLED"):
         if configuration.get("EMAIL_BACKEND") != "django.core.mail.backends.smtp.EmailBackend":
             raise ImproperlyConfigured(

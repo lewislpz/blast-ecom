@@ -19,8 +19,10 @@ Shipping is explicitly simulated at EUR 0.00. Product prices are final displayed
 ```mermaid
 stateDiagram-v2
     [*] --> awaiting_payment: create order and reservations atomically
-    awaiting_payment --> confirmed: simulated payment succeeds
-    awaiting_payment --> failed: simulated payment fails
+    awaiting_payment --> payment_processing: signed Stripe authorization; capture begins
+    payment_processing --> confirmed: exact capture verified
+    awaiting_payment --> confirmed: local simulator succeeds
+    awaiting_payment --> failed: simulator rejects or Stripe authorization mismatches
     awaiting_payment --> cancelled: owner cancels before deadline
     awaiting_payment --> expired: reservation deadline reached
     confirmed --> [*]
@@ -29,7 +31,7 @@ stateDiagram-v2
     expired --> [*]
 ```
 
-Confirmed means payment simulation and stock consumption succeeded. It never means shipped or delivered.
+Confirmed means the configured local simulation succeeded or the Stripe sandbox capture was verified and stock consumption committed. It never means shipped or delivered. A browser redirect does not confirm payment.
 
 ## Creation
 
@@ -41,15 +43,22 @@ Confirmed means payment simulation and stock consumption succeeded. It never mea
 
 Insufficient stock, invalid quantities or price conflict produces no partial order/reservation. A created order may later expire or be cancelled, so creation alone does not simulate payment.
 
-## Payment Simulation
+## Payment Processing
 
-The owner-scoped domain operation resolves the explicit payment command. Under order/stock locks, it checks the deadline and terminal status first. Only awaiting_payment may create one payment attempt. Its result is selected by a server-side deterministic simulator (default success; failure injectable only by tests/trusted local configuration). Clients cannot send a payment result or card data. The HTTP endpoint and browser flow are implemented.
+The owner-scoped operation selects the configured provider. In local DEBUG development, the deterministic simulator is the default. In Stripe sandbox mode, the backend creates a hosted Checkout Session using immutable order-line snapshots, EUR minor units, card-only test methods and manual capture. The client is redirected only to the provider's validated hosted domain; Blast Ecom does not receive card data. Checkout session creation is idempotent per payment attempt.
+
+Only a raw-body signature-verified `payment_intent.amount_capturable_updated` event can trigger capture. A minimal provider receipt is persisted before processing. Under order, attempt and event locks, the service checks exact authorized/capturable amount, EUR currency, payment-intent identity, order state, reservation deadline and active reservation. It commits a `payment_processing` claim before calling Stripe; provider I/O is outside the database transaction. Capture uses a stable idempotency key. Local confirmation and stock consumption happen only after Stripe reports a successful exact-amount capture. A transient provider error leaves the event retryable; a late, mismatched or no-longer-payable authorization is cancelled rather than captured. The return URL only polls local order state.
+
+The Stripe flow is sandbox-only at this stage. No real payment, refund, dispute handling or production settlement is supported. A real Stripe test account is still required to verify hosted-provider behavior end to end.
 
 - Success: Payments records succeeded, Inventory consumes reservations (decrement on_hand and reserved), Orders sets confirmed.
 - Failure: Payments records failed, Inventory releases reserved units, Orders sets failed.
 - Database/implementation error: transaction rolls back; order remains payable until its deadline; no half-recorded payment.
 - A repeated payment with a new key on confirmed/failed returns the existing attempt without repeating stock effects. On cancelled/expired it returns 409; no new attempt.
 - Retry after business failure means create a new order, not retry the failed order.
+- Stripe capture transiently fails: the order remains `payment_processing`; the durable event remains pending and a provider retry resumes with the same capture idempotency key.
+- Browser returns before webhook processing: order remains unconfirmed while the page polls; browser state never triggers capture or confirmation.
+- Signed authorization is late, partial, mismatched or for a terminal order: never capture; release an active reservation as appropriate and cancel the provider authorization.
 
 ## Cancellation and Expiry
 

@@ -18,7 +18,8 @@ Domain records use UUIDv4 primary keys, UTC created_at and updated_at where muta
 | Inventory | StockAdjustment | Product FK, signed nonzero delta, actor FK, reason, UTC time; append-only |
 | Orders | Order | Customer FK, state, EUR totals, expires_at, delivery snapshot, transition timestamps |
 | Orders | OrderItem | Order FK, product FK, SKU/title/price snapshots, positive quantity, line_total; unique(order, product) |
-| Payments | PaymentAttempt | One-to-one order FK, succeeded/failed, amount/currency snapshot, simulator reference, timestamp |
+| Payments | PaymentAttempt | One-to-one order FK, provider/outcome, amount/currency snapshot, nullable simulator reference, hosted session and payment-intent IDs |
+| Payments | ProviderEvent | Unique provider event ID, allowlisted event fields, attempt FK, capture/cancel action, pending/processed state; raw payload is not stored |
 | Notifications | NotificationIntent | Order FK, transition code, pending/simulated state and timestamps; unique(order, transition code), state/created index |
 | Technical | IdempotencyRecord | User FK, operation, key, request hash, status/body result, expiry; unique(user, operation, key) |
 | Technical | AuditEntry | Actor reference, action code, target UUID, sanitized change metadata, timestamp; append-only by application policy |

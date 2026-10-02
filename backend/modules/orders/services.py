@@ -19,8 +19,17 @@ from modules.inventory.services import (
 )
 from modules.notifications.services import create_transition_intent
 from modules.orders.models import Order, OrderItem
+from modules.payments.models import PaymentAttempt, ProviderEvent
 from modules.payments.selectors import get_payment_attempt
 from modules.payments.services import create_simulated_attempt
+from modules.payments.stripe_provider import (
+    StripeProviderError,
+    amount_in_minor_units,
+    cancel_payment_intent,
+    capture_payment_intent,
+    create_checkout_session,
+    expire_checkout_session,
+)
 from modules.products.models import Product
 from modules.users.models import User
 
@@ -292,11 +301,20 @@ def cancel_order(*, user: User, order_id: UUID, idempotency_key: UUID) -> Operat
 
 
 def get_owned_order(*, user: User, order_id: UUID) -> Order | None:
-    return Order.objects.filter(customer=user, pk=order_id).prefetch_related("items").first()
+    return (
+        Order.objects.filter(customer=user, pk=order_id)
+        .select_related("payment_attempt")
+        .prefetch_related("items")
+        .first()
+    )
 
 
 def owned_orders(*, user: User) -> QuerySet[Order]:
-    return Order.objects.filter(customer=user).prefetch_related("items")
+    return (
+        Order.objects.filter(customer=user)
+        .select_related("payment_attempt")
+        .prefetch_related("items")
+    )
 
 
 def _payment_body(order: Order, attempt: Any | None = None) -> dict[str, Any]:
@@ -307,7 +325,13 @@ def _payment_body(order: Order, attempt: Any | None = None) -> dict[str, Any]:
         "currency": order.currency,
     }
     if attempt is not None:
-        body["payment"] = {"id": str(attempt.pk), "outcome": attempt.outcome}
+        body["payment"] = {
+            "id": str(attempt.pk),
+            "outcome": attempt.outcome,
+            "provider": attempt.provider,
+        }
+        if attempt.provider_session_url:
+            body["checkout_url"] = attempt.provider_session_url
     return body
 
 
@@ -353,6 +377,253 @@ def simulate_payment(*, user: User, order_id: UUID, idempotency_key: UUID) -> Op
         execute=execute,
         authorize_replay=lambda: Order.objects.filter(pk=order_id, customer=user).exists(),
     )
+
+
+def start_payment(*, user: User, order_id: UUID, idempotency_key: UUID) -> OperationResult:
+    """Start the configured payment path; provider I/O happens after local commit."""
+    provider = settings.PAYMENT_PROVIDER
+    if provider == "simulator":
+        return simulate_payment(user=user, order_id=order_id, idempotency_key=idempotency_key)
+    if provider != "stripe_sandbox":
+        return OperationResult(503, {"code": "PAYMENTS_UNAVAILABLE"})
+
+    payload = {"order_id": str(order_id), "command": "start_payment"}
+
+    def execute() -> OperationResult:
+        order = _locked_owned_order(order_id=order_id, user=user)
+        if order is None:
+            return OperationResult(404, {"code": "NOT_FOUND"})
+        if _expire_locked_order(order, actor=user):
+            return OperationResult(409, {"code": "ORDER_EXPIRED", "order": _payment_body(order)})
+
+        existing = get_payment_attempt(order_id=order.pk)
+        if existing is not None:
+            if existing.provider != PaymentAttempt.Provider.STRIPE:
+                return OperationResult(409, {"code": "PAYMENT_ALREADY_RECORDED"})
+            if order.state != Order.State.AWAITING_PAYMENT:
+                return OperationResult(409, {"code": "ORDER_NOT_PAYABLE", "state": order.state})
+            return OperationResult(200, _payment_body(order, existing))
+        if order.state != Order.State.AWAITING_PAYMENT:
+            return OperationResult(409, {"code": "ORDER_NOT_PAYABLE", "state": order.state})
+
+        attempt = PaymentAttempt.objects.create(
+            order=order,
+            provider=PaymentAttempt.Provider.STRIPE,
+            outcome=PaymentAttempt.Outcome.PENDING,
+            amount=order.total,
+            currency=order.currency,
+            simulator_reference=None,
+        )
+        return OperationResult(200, _payment_body(order, attempt))
+
+    result = execute_idempotent(
+        user=user,
+        operation="orders.payment",
+        key=idempotency_key,
+        payload=payload,
+        execute=execute,
+        authorize_replay=lambda: Order.objects.filter(pk=order_id, customer=user).exists(),
+    )
+    if result.status >= 400:
+        return result
+
+    payment = result.body.get("payment")
+    if not isinstance(payment, dict) or not payment.get("id"):
+        return result
+    try:
+        attempt_id = UUID(str(payment["id"]))
+    except ValueError:
+        return result
+    attempt = PaymentAttempt.objects.select_related("order").filter(pk=attempt_id).first()
+    if attempt is None:
+        return OperationResult(503, {"code": "PAYMENT_PROVIDER_UNAVAILABLE"})
+    if attempt.provider_session_url:
+        return OperationResult(200, _payment_body(attempt.order, attempt))
+    if attempt.outcome != PaymentAttempt.Outcome.PENDING:
+        return OperationResult(200, _payment_body(attempt.order, attempt))
+
+    try:
+        session_id, session_url = create_checkout_session(order=attempt.order, attempt=attempt)
+    except Exception as exc:
+        # Do not disclose or log provider request/response data, which can contain PII.
+        if not isinstance(exc, StripeProviderError):
+            import stripe
+
+            if not isinstance(exc, stripe.StripeError):
+                raise
+        return OperationResult(503, {"code": "PAYMENT_PROVIDER_UNAVAILABLE"})
+
+    with transaction.atomic():
+        locked_order = Order.objects.select_for_update().get(pk=attempt.order_id)
+        locked_attempt = PaymentAttempt.objects.select_for_update().get(pk=attempt.pk)
+        if (
+            locked_order.state != Order.State.AWAITING_PAYMENT
+            or locked_order.expires_at <= database_now()
+            or locked_attempt.outcome != PaymentAttempt.Outcome.PENDING
+        ):
+            should_expire = True
+        else:
+            should_expire = False
+            if locked_attempt.provider_session_id not in (None, session_id):
+                raise RuntimeError(
+                    "Concurrent Stripe Checkout creation returned different sessions."
+                )
+            locked_attempt.provider_session_id = session_id
+            locked_attempt.provider_session_url = session_url
+            locked_attempt.save(update_fields=["provider_session_id", "provider_session_url"])
+    if should_expire:
+        try:
+            expire_checkout_session(session_id=session_id)
+        except Exception as exc:
+            import stripe
+
+            if not isinstance(exc, (StripeProviderError, stripe.StripeError)):
+                raise
+        return OperationResult(409, {"code": "ORDER_NOT_PAYABLE"})
+
+    return OperationResult(200, _payment_body(locked_order, locked_attempt))
+
+
+def process_provider_event(*, event_id: str) -> None:
+    """Capture a verified authorization only after atomic order/reservation validation."""
+    with transaction.atomic():
+        event = ProviderEvent.objects.select_for_update().get(provider_event_id=event_id)
+        attempt = (
+            PaymentAttempt.objects.select_for_update()
+            .select_related("order")
+            .get(pk=event.payment_attempt_id)
+        )
+        order = Order.objects.select_for_update().get(pk=attempt.order_id)
+        if event.status == ProviderEvent.Status.PROCESSED:
+            return
+
+        expected_amount = amount_in_minor_units(attempt.amount)
+        same_intent = attempt.provider_payment_intent_id in (None, event.payment_intent_id)
+        authorized_exactly = (
+            same_intent
+            and event.amount == expected_amount
+            and event.amount_capturable == expected_amount
+            and event.currency.lower() == attempt.currency.lower()
+        )
+        if (
+            attempt.outcome == PaymentAttempt.Outcome.SUCCEEDED
+            and order.state == Order.State.CONFIRMED
+        ):
+            event.status = ProviderEvent.Status.PROCESSED
+            event.processed_at = database_now()
+            event.save(update_fields=["status", "processed_at"])
+            return
+
+        can_resume_capture = (
+            order.state == Order.State.PAYMENT_PROCESSING
+            and attempt.outcome == PaymentAttempt.Outcome.CAPTURING
+            and same_intent
+        )
+        if can_resume_capture and not authorized_exactly:
+            # A duplicate authorization event cannot alter a capture already durably claimed.
+            event.status = ProviderEvent.Status.PROCESSED
+            event.processed_at = database_now()
+            event.save(update_fields=["status", "processed_at"])
+            return
+        if authorized_exactly and (
+            can_resume_capture
+            or (
+                order.state == Order.State.AWAITING_PAYMENT
+                and attempt.outcome == PaymentAttempt.Outcome.PENDING
+                and order.expires_at > database_now()
+            )
+        ):
+            event.action = ProviderEvent.Action.CAPTURE
+            if not can_resume_capture:
+                previous = order.state
+                order.state = Order.State.PAYMENT_PROCESSING
+                order.transitioned_at = database_now()
+                order.save(update_fields=["state", "transitioned_at", "updated_at"])
+                attempt.provider_payment_intent_id = event.payment_intent_id
+                attempt.outcome = PaymentAttempt.Outcome.CAPTURING
+                attempt.save(update_fields=["provider_payment_intent_id", "outcome"])
+                _record_transition(
+                    order=order,
+                    actor=None,
+                    previous=previous,
+                    action="payment.capture_started",
+                )
+        else:
+            event.action = ProviderEvent.Action.CANCEL
+            if order.state == Order.State.AWAITING_PAYMENT:
+                if order.expires_at <= database_now():
+                    _expire_locked_order(order, actor=None)
+                else:
+                    previous = order.state
+                    transition_order_reservations(order_id=order.pk, consume=False)
+                    order.state = Order.State.FAILED
+                    order.transitioned_at = database_now()
+                    order.save(update_fields=["state", "transitioned_at", "updated_at"])
+                    _record_transition(
+                        order=order,
+                        actor=None,
+                        previous=previous,
+                        action="payment.rejected",
+                    )
+                attempt.outcome = PaymentAttempt.Outcome.FAILED
+                attempt.save(update_fields=["outcome"])
+            elif order.state in (
+                Order.State.CANCELLED,
+                Order.State.EXPIRED,
+                Order.State.FAILED,
+            ):
+                attempt.outcome = PaymentAttempt.Outcome.FAILED
+                attempt.save(update_fields=["outcome"])
+        event.save(update_fields=["action"])
+        action = event.action
+        payment_intent_id = event.payment_intent_id
+
+    if action == ProviderEvent.Action.CAPTURE:
+        provider_result = capture_payment_intent(payment_intent_id=payment_intent_id)
+        if (
+            provider_result.status != "succeeded"
+            or int(provider_result.amount_received or 0) != expected_amount
+            or str(provider_result.currency or "").lower() != attempt.currency.lower()
+        ):
+            raise StripeProviderError("Stripe capture did not match the authorized order amount.")
+    else:
+        cancellation = cancel_payment_intent(payment_intent_id=payment_intent_id)
+        if cancellation.status != "canceled":
+            raise StripeProviderError("Stripe did not confirm cancellation of authorization.")
+
+    with transaction.atomic():
+        event = ProviderEvent.objects.select_for_update().get(provider_event_id=event_id)
+        attempt = (
+            PaymentAttempt.objects.select_for_update()
+            .select_related("order")
+            .get(pk=event.payment_attempt_id)
+        )
+        order = Order.objects.select_for_update().get(pk=attempt.order_id)
+        if event.status == ProviderEvent.Status.PROCESSED:
+            return
+        if event.action == ProviderEvent.Action.CAPTURE:
+            if (
+                order.state != Order.State.PAYMENT_PROCESSING
+                or attempt.outcome != PaymentAttempt.Outcome.CAPTURING
+                or attempt.provider_payment_intent_id != event.payment_intent_id
+            ):
+                raise RuntimeError("Order/payment state changed during provider capture.")
+            transition_order_reservations(order_id=order.pk, consume=True)
+            previous = order.state
+            order.state = Order.State.CONFIRMED
+            order.transitioned_at = database_now()
+            order.save(update_fields=["state", "transitioned_at", "updated_at"])
+            attempt.outcome = PaymentAttempt.Outcome.SUCCEEDED
+            attempt.save(update_fields=["outcome"])
+            _record_transition(
+                order=order,
+                actor=None,
+                previous=previous,
+                action="payment.succeeded",
+            )
+        event.status = ProviderEvent.Status.PROCESSED
+        event.processed_at = database_now()
+        event.save(update_fields=["status", "processed_at"])
 
 
 @transaction.atomic

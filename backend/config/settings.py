@@ -170,11 +170,30 @@ EMAIL_TIMEOUT = int(os.environ.get("DJANGO_EMAIL_TIMEOUT", "10"))
 FRONTEND_BASE_URL = os.environ.get(
     "BLAST_ECOM_FRONTEND_URL", "http://127.0.0.1:5173" if DEBUG else ""
 )
+_payment_provider_default = "simulator" if DEBUG else "disabled"
+PAYMENT_PROVIDER = (
+    os.environ.get("BLAST_ECOM_PAYMENT_PROVIDER", _payment_provider_default).strip().lower()
+)
+STRIPE_SECRET_KEY = os.environ.get("BLAST_ECOM_STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("BLAST_ECOM_STRIPE_WEBHOOK_SECRET", "")
+if PAYMENT_PROVIDER not in {"simulator", "stripe_sandbox", "disabled"}:
+    raise RuntimeError("BLAST_ECOM_PAYMENT_PROVIDER must be simulator, stripe_sandbox or disabled.")
+if PAYMENT_PROVIDER == "simulator" and not DEBUG:
+    raise RuntimeError("The simulated payment provider is available only when DJANGO_DEBUG=true.")
+if PAYMENT_PROVIDER == "stripe_sandbox" and (
+    not STRIPE_SECRET_KEY.startswith("sk_test_") or not STRIPE_WEBHOOK_SECRET.startswith("whsec_")
+):
+    raise RuntimeError(
+        "Stripe sandbox requires BLAST_ECOM_STRIPE_SECRET_KEY (sk_test_) and "
+        "BLAST_ECOM_STRIPE_WEBHOOK_SECRET (whsec_)."
+    )
 ACCOUNT_TOKEN_MAX_AGE = 60 * 60
 PASSWORD_RESET_TIMEOUT = 60 * 60
 SPECTACULAR_SETTINGS = {
     "TITLE": "Blast Ecom API",
-    "DESCRIPTION": "Local simulated commerce API. Real payments and sales are not supported.",
+    "DESCRIPTION": (
+        "Blast Ecom commerce API. Payments are local simulations or Stripe sandbox only."
+    ),
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
@@ -233,6 +252,9 @@ if not DEBUG:
             "FRONTEND_BASE_URL": FRONTEND_BASE_URL,
             "SECURE_HSTS_SECONDS": SECURE_HSTS_SECONDS,
             "DATABASE_SSLMODE": DATABASE_SSLMODE,
+            "PAYMENT_PROVIDER": PAYMENT_PROVIDER,
+            "STRIPE_SECRET_KEY": STRIPE_SECRET_KEY,
+            "STRIPE_WEBHOOK_SECRET": STRIPE_WEBHOOK_SECRET,
             "PUBLIC_ACCOUNT_FLOWS_ENABLED": PUBLIC_ACCOUNT_FLOWS_ENABLED,
             "EMAIL_BACKEND": EMAIL_BACKEND,
             "EMAIL_HOST": EMAIL_HOST,

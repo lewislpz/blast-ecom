@@ -11,6 +11,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include("modules.users.urls")),
     path("api/v1/", include("modules.orders.urls")),
+    path("api/v1/", include("modules.payments.urls")),
     path("api/v1/", include("modules.products.urls")),
     path(
         "api/schema/",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
 from rest_framework import serializers
 
 from modules.common.strict_serializers import StrictSerializer
@@ -62,6 +63,7 @@ class PaymentOperationResponseSerializer(serializers.Serializer[Any]):
     total = serializers.DecimalField(max_digits=12, decimal_places=2)
     currency = serializers.CharField()
     payment = serializers.DictField(required=False)
+    checkout_url = serializers.URLField(required=False)
 
 
 class DeliveryAddressResponseSerializer(serializers.Serializer[Any]):
@@ -86,6 +88,8 @@ class OrderDetailResponseSerializer(serializers.Serializer[Any]):
     updated_at = serializers.DateTimeField()
     items = OrderItemResponseSerializer(many=True)
     delivery_address = serializers.SerializerMethodField()
+    payment_provider = serializers.SerializerMethodField()
+    payment = serializers.SerializerMethodField()
 
     def get_delivery_address(self, obj: Order) -> dict[str, str]:
         return {
@@ -97,6 +101,16 @@ class OrderDetailResponseSerializer(serializers.Serializer[Any]):
             "postal_code": obj.postal_code,
             "country_code": obj.country_code,
         }
+
+    def get_payment(self, obj: Order) -> dict[str, str] | None:
+        attempt = getattr(obj, "payment_attempt", None)
+        if attempt is None:
+            return None
+        return {"provider": attempt.provider, "outcome": attempt.outcome}
+
+    def get_payment_provider(self, obj: Order) -> str:
+        del obj
+        return str(settings.PAYMENT_PROVIDER)
 
 
 class AccountOrderListResponseSerializer(serializers.Serializer[Any]):

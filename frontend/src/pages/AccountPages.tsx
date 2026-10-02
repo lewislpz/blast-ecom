@@ -1012,6 +1012,7 @@ export function OrdersPage() {
 function OrderState({ state }: { state: string }) {
   const labels: Record<string, string> = {
     awaiting_payment: 'Pendiente de pago',
+    payment_processing: 'Procesando pago',
     confirmed: 'Confirmado',
     failed: 'Fallido',
     cancelled: 'Cancelado',
@@ -1036,10 +1037,24 @@ export function OrderDetailPage() {
     queryFn: api.currentUser,
     retry: false,
   })
+  const location = useLocation()
+  const search = new URLSearchParams(location.search)
+  const paymentReturn = search.get('payment') === 'return'
+  const paymentCancelled = search.get('payment') === 'cancelled'
   const order = useQuery({
     queryKey: ['order', id],
     queryFn: () => api.order(id),
     enabled: Boolean(session.data && id),
+    refetchInterval: (query) => {
+      const state = query.state.data?.state
+      return paymentReturn &&
+        state !== 'confirmed' &&
+        state !== 'failed' &&
+        state !== 'cancelled' &&
+        state !== 'expired'
+        ? 2000
+        : false
+    },
   })
   const key = useRef<string | null>(null)
   const action = useMutation<
@@ -1050,11 +1065,15 @@ export function OrderDetailPage() {
     mutationFn: (type: 'payment' | 'cancel') => {
       key.current ??= idempotencyKey()
       return type === 'payment'
-        ? api.simulatePayment(id, key.current)
+        ? api.startPayment(id, key.current)
         : api.cancelOrder(id, key.current)
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       key.current = null
+      if ('checkout_url' in result && result.checkout_url) {
+        window.location.assign(result.checkout_url)
+        return
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['order', id] }),
         queryClient.invalidateQueries({ queryKey: ['orders'] }),
@@ -1098,6 +1117,8 @@ export function OrderDetailPage() {
     )
   const item = order.data
   const canAct = item.state === 'awaiting_payment'
+  const stripeSandbox = item.payment_provider === 'stripe_sandbox'
+  const simulator = item.payment_provider === 'simulator'
   return (
     <main className="page-container page-content order-detail-page">
       <Link className="back-link" to="/account/orders">
@@ -1105,7 +1126,9 @@ export function OrderDetailPage() {
       </Link>
       <div className="order-detail-heading">
         <div>
-          <p className="eyebrow">Pedido de demostración</p>
+          <p className="eyebrow">
+            {simulator ? 'Pedido de demostración' : 'Pedido'}
+          </p>
           <h1>Gracias por tu pedido.</h1>
           <p className="order-reference">
             Referencia {item.id.slice(0, 8).toUpperCase()} ·{' '}
@@ -1115,9 +1138,25 @@ export function OrderDetailPage() {
         <OrderState state={item.state} />
       </div>
       <div className="notice demo-order-notice">
-        Este pedido y su pago son simulados. No se ha realizado ningún cargo ni
-        envío.
+        {simulator
+          ? 'Este pedido y su pago son simulados. No se ha realizado ningún cargo ni envío.'
+          : stripeSandbox
+            ? 'Pago de prueba en Stripe Sandbox. No se mueve dinero real; los datos de pago se introducen en la página alojada de Stripe.'
+            : 'Los pagos están desactivados en este entorno.'}
       </div>
+      {paymentReturn && item.state !== 'confirmed' && (
+        <div className="notice" role="status">
+          Estamos verificando el pago con el proveedor. Esta página se
+          actualizará automáticamente; no vuelvas a pagar mientras siga
+          procesándose.
+        </div>
+      )}
+      {paymentCancelled && item.state === 'awaiting_payment' && (
+        <div className="notice" role="status">
+          No se completó el pago. Puedes reanudarlo mientras la reserva siga
+          activa.
+        </div>
+      )}
       {item.state === 'awaiting_payment' && (
         <p className="reservation-note">
           Reserva temporal hasta{' '}
@@ -1132,13 +1171,16 @@ export function OrderDetailPage() {
       )}
       {item.state === 'confirmed' && (
         <div className="notice notice-success">
-          Pago de demostración aceptado por el simulador. Pedido confirmado;
-          esto no representa un envío.
+          {simulator
+            ? 'Pago de demostración aceptado por el simulador. Pedido confirmado; esto no representa un envío.'
+            : 'La autorización de prueba se capturó y el pedido está confirmado. Esto no representa un envío ni un cargo real.'}
         </div>
       )}
       {item.state === 'failed' && (
         <div className="notice notice-error">
-          El simulador rechazó el pago. No se ha realizado ningún cargo.
+          {simulator
+            ? 'El simulador rechazó el pago. No se ha realizado ningún cargo.'
+            : 'El proveedor no pudo completar el pago. No se ha confirmado el pedido.'}
         </div>
       )}
       <div className="order-detail-layout">
@@ -1174,11 +1216,12 @@ export function OrderDetailPage() {
         </section>
         <aside className="cart-summary order-actions">
           <p className="eyebrow">Siguiente paso</p>
-          {canAct ? (
+          {canAct && item.payment_provider !== 'disabled' ? (
             <>
               <p>
-                Elige qué hacer con este pedido pendiente. El resultado del pago
-                lo decide el servidor.
+                {simulator
+                  ? 'El resultado del pago de demostración lo decide el servidor.'
+                  : 'Continúa en el entorno seguro del proveedor para autorizar el pago de prueba.'}
               </p>
               <button
                 type="button"
@@ -1186,7 +1229,11 @@ export function OrderDetailPage() {
                 disabled={action.isPending}
                 onClick={() => action.mutate('payment')}
               >
-                {action.isPending ? 'Procesando…' : 'Simular pago'}{' '}
+                {action.isPending
+                  ? 'Procesando…'
+                  : simulator
+                    ? 'Simular pago'
+                    : 'Continuar al pago'}{' '}
                 <span>→</span>
               </button>
               <button
@@ -1198,12 +1245,18 @@ export function OrderDetailPage() {
                 Cancelar pedido
               </button>
               <p className="summary-note">
-                No se solicitan ni procesan datos de tarjeta.
+                {simulator
+                  ? 'No se solicitan ni procesan datos de tarjeta.'
+                  : 'Blast Ecom no recibe ni almacena datos de tarjeta.'}
               </p>
             </>
           ) : (
             <>
-              <p>Este pedido ya no admite acciones.</p>
+              <p>
+                {item.state === 'payment_processing'
+                  ? 'El proveedor está completando la captura segura del pago.'
+                  : 'Este pedido ya no admite acciones.'}
+              </p>
               <Link
                 className="button button-outline full-button"
                 to="/account/orders"

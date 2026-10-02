@@ -27,7 +27,7 @@ from modules.orders.services import (
     create_order,
     get_owned_order,
     owned_orders,
-    simulate_payment,
+    start_payment,
 )
 from modules.users.models import User
 
@@ -200,7 +200,7 @@ class OrderPaymentView(APIView):
     permission_classes = (IsAuthenticated, IsActiveCustomer)
 
     @extend_schema(
-        operation_id="orders_simulate_payment",
+        operation_id="orders_start_payment",
         request=None,
         parameters=[
             CSRF_HEADER,
@@ -208,6 +208,7 @@ class OrderPaymentView(APIView):
         ],
         responses={
             200: PaymentOperationResponseSerializer,
+            (503, "application/problem+json"): ProblemDetailSerializer,
             (400, "application/problem+json"): ProblemDetailSerializer,
             (403, "application/problem+json"): ProblemDetailSerializer,
             (404, "application/problem+json"): ProblemDetailSerializer,
@@ -216,7 +217,7 @@ class OrderPaymentView(APIView):
     )
     def post(self, request: Request, order_id: UUID) -> Response:
         _require_empty_body(request)
-        result = simulate_payment(
+        result = start_payment(
             user=_customer(request),
             order_id=order_id,
             idempotency_key=_idempotency_key(request),

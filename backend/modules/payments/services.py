@@ -11,6 +11,7 @@ def create_simulated_attempt(*, order: Order) -> PaymentAttempt:
     succeeded = bool(getattr(settings, "BLAST_ECOM_SIMULATED_PAYMENT_SUCCESS", True))
     return PaymentAttempt.objects.create(
         order=order,
+        provider=PaymentAttempt.Provider.SIMULATOR,
         outcome=PaymentAttempt.Outcome.SUCCEEDED if succeeded else PaymentAttempt.Outcome.FAILED,
         amount=order.total,
         currency=order.currency,

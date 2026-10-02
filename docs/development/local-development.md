@@ -18,6 +18,8 @@ Compose loads `.env` automatically and configures the internal database hostname
 
 With `DJANGO_DEBUG=true`, Django trusts the default local Vite origins (`http://localhost:5173` and `http://127.0.0.1:5173`) for CSRF Origin checks. Configure `DJANGO_CSRF_TRUSTED_ORIGINS` explicitly if local hostnames/ports differ. This development exception is empty by default outside DEBUG; production must use the actual same-origin host or a reviewed explicit origin list.
 
+Local payment defaults to the deterministic simulator. To exercise Stripe-hosted Checkout, configure `BLAST_ECOM_PAYMENT_PROVIDER=stripe_sandbox`, a Stripe test-mode `sk_test_...` key and the corresponding `whsec_...` webhook secret in the ignored local `.env`. The API rejects live-mode keys; the webhook path is `/api/v1/payments/stripe/webhook/`. Use a provider test-mode account and test card details only on Stripe's hosted page. Never place card values or provider secrets in source, frontend variables, fixtures or logs. Without a Stripe test account and reachable webhook forwarding, use the automated provider-boundary fixtures; these do not prove a real provider session.
+
 ## Start the Local Stack
 
 1. Copy and edit `.env.example` as `.env`.
@@ -98,6 +100,8 @@ npm run format:check
 npm run build
 npm run test:e2e
 ```
+
+For an isolated E2E run while the default local frontend port is already occupied, `BLAST_ECOM_E2E_PORT` selects another loopback port and `BLAST_ECOM_API_PROXY_TARGET` selects the API origin. Add that frontend origin to `DJANGO_CSRF_TRUSTED_ORIGINS` for the test backend. The Stripe redirect E2E intercepts a fictional hosted checkout page and does not contact Stripe.
 
 The read-only storefront/accessibility check can run directly with `npm run test:e2e`. The purchase journey creates fictional product, account and order data in the configured database. To enable that data-writing test, verify the database is disposable/local and explicitly set `BLAST_ECOM_E2E_ALLOW_DATA_WRITES=true`. Synthetic records are intentionally not deleted automatically. PostgreSQL must be migrated and Chromium installed with `npx playwright install chromium`.
 

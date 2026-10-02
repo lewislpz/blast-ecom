@@ -73,6 +73,10 @@ export type OrderDetailResponse = {
     readonly delivery_address: {
         [key: string]: string;
     };
+    readonly payment_provider: string;
+    readonly payment: {
+        [key: string]: string;
+    } | null;
 };
 
 export type OrderItemResponse = {
@@ -153,6 +157,7 @@ export type PaymentOperationResponse = {
     payment?: {
         [key: string]: unknown;
     };
+    checkout_url?: string;
 };
 
 export type ProblemDetail = {
@@ -538,7 +543,7 @@ export type OrdersListData = {
     query?: {
         page?: number;
         page_size?: number;
-        state?: 'awaiting_payment' | 'cancelled' | 'confirmed' | 'expired' | 'failed';
+        state?: 'awaiting_payment' | 'cancelled' | 'confirmed' | 'expired' | 'failed' | 'payment_processing';
     };
     url: '/api/v1/orders/';
 };
@@ -642,7 +647,7 @@ export type OrdersCancelResponses = {
 
 export type OrdersCancelResponse = OrdersCancelResponses[keyof OrdersCancelResponses];
 
-export type OrdersSimulatePaymentData = {
+export type OrdersStartPaymentData = {
     body?: never;
     headers: {
         /**
@@ -661,20 +666,21 @@ export type OrdersSimulatePaymentData = {
     url: '/api/v1/orders/{order_id}/payment/';
 };
 
-export type OrdersSimulatePaymentErrors = {
+export type OrdersStartPaymentErrors = {
     400: ProblemDetail;
     403: ProblemDetail;
     404: ProblemDetail;
     409: ProblemDetail;
+    503: ProblemDetail;
 };
 
-export type OrdersSimulatePaymentError = OrdersSimulatePaymentErrors[keyof OrdersSimulatePaymentErrors];
+export type OrdersStartPaymentError = OrdersStartPaymentErrors[keyof OrdersStartPaymentErrors];
 
-export type OrdersSimulatePaymentResponses = {
+export type OrdersStartPaymentResponses = {
     200: PaymentOperationResponse;
 };
 
-export type OrdersSimulatePaymentResponse = OrdersSimulatePaymentResponses[keyof OrdersSimulatePaymentResponses];
+export type OrdersStartPaymentResponse = OrdersStartPaymentResponses[keyof OrdersStartPaymentResponses];
 
 export type V1ProductsListData = {
     body?: never;

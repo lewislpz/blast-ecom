@@ -4,7 +4,13 @@ import { resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-const password = `Blast-${crypto.randomUUID()}-Demo!`
+function testPassword(): string {
+  const alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const random = crypto.getRandomValues(new Uint8Array(24))
+  return `Q7!${Array.from(random, (value) => alphabet[value % alphabet.length]).join('')}z`
+}
+
+const password = testPassword()
 const email = `customer-${crypto.randomUUID()}@example.test`
 let productTitle = ''
 
@@ -64,7 +70,9 @@ test.describe('local customer purchase journey', () => {
     await page.getByLabel('Correo electrónico').fill(email)
     await page.getByLabel('Contraseña').fill(password)
     await page.getByRole('button', { name: 'Crear cuenta' }).click()
-    await expect(page.getByRole('status')).toContainText('Cuenta de demo creada')
+    await expect(page.getByRole('status')).toContainText(
+      'Cuenta de demo creada',
+    )
     await page.getByRole('link', { name: 'Entra aquí' }).click()
 
     await page.getByLabel('Correo electrónico').fill(email)
@@ -88,6 +96,72 @@ test.describe('local customer purchase journey', () => {
     ).toBeVisible()
     await expect(page.getByText('Confirmado')).toBeVisible()
     await expect(page.getByText('Cancelado')).toBeVisible()
+  })
+
+  test('redirects to the hosted Stripe sandbox fixture without exposing payment data', async ({
+    page,
+  }) => {
+    const stripeEmail = `stripe-${crypto.randomUUID()}@example.test`
+    const stripePassword = testPassword()
+    await page.goto('/register')
+    await page.getByLabel('Correo electrónico').fill(stripeEmail)
+    await page.getByLabel('Contraseña').fill(stripePassword)
+    await page.getByRole('button', { name: 'Crear cuenta' }).click()
+    await expect(page.getByRole('status')).toContainText(
+      'Cuenta de demo creada',
+    )
+    await page.getByRole('link', { name: 'Entra aquí' }).click()
+    await page.getByLabel('Correo electrónico').fill(stripeEmail)
+    await page.getByLabel('Contraseña').fill(stripePassword)
+    await page.getByRole('button', { name: 'Entrar' }).click()
+    await expect(
+      page.getByRole('heading', { name: 'Tus pedidos.' }),
+    ).toBeVisible()
+
+    await page.route(/\/api\/v1\/orders\/[0-9a-f-]+\/$/, async (route) => {
+      const response = await route.fetch()
+      const order = (await response.json()) as Record<string, unknown>
+      await route.fulfill({
+        response,
+        json: { ...order, payment_provider: 'stripe_sandbox' },
+      })
+    })
+    await checkout(page)
+    const orderId = new URL(page.url()).pathname.split('/').at(-1)
+    expect(orderId).toBeTruthy()
+
+    await page.route(`**/api/v1/orders/${orderId}/payment/`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          order_id: orderId,
+          order_state: 'awaiting_payment',
+          total: '18.50',
+          currency: 'EUR',
+          payment: { id: crypto.randomUUID(), outcome: 'pending' },
+          checkout_url: 'https://checkout.stripe.com/c/pay/cs_test_browser',
+        }),
+      })
+    })
+    await page.route('https://checkout.stripe.com/**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<main><h1>Stripe sandbox test fixture</h1><p>No payment data collected.</p></main>',
+      }),
+    )
+
+    await expect(
+      page.getByRole('button', { name: 'Continuar al pago' }),
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Continuar al pago' }).click()
+    await expect(page).toHaveURL(
+      'https://checkout.stripe.com/c/pay/cs_test_browser',
+    )
+    await expect(
+      page.getByRole('heading', { name: 'Stripe sandbox test fixture' }),
+    ).toBeVisible()
   })
 })
 

@@ -1,10 +1,10 @@
 # Blast Ecom Project Status
 
-Updated: 2026-10-01
+Updated: 2026-10-02
 
 ## Current Phase
 
-Phase 3 — Testing & pre-production hardening. The local commerce slice and Compose platform are implemented and committed. This phase advances the application toward public accounts, provider-backed payments, hosted recovery, CI and a real deployment. No hosted production environment is claimed.
+Phase 3 — Testing & pre-production hardening. The local commerce slice and Compose platform are implemented and committed. Public-account foundations and Stripe sandbox integration code are implemented; live SMTP/payment, hosted recovery, CI and real deployment are not yet verified or complete. No hosted production environment is claimed.
 
 ## Current Objective
 
@@ -16,7 +16,7 @@ The local-development milestone is complete and verified. The current objective 
 - ADR-0013 through ADR-0021: nine grouped decisions selected by Codex under explicit user delegation on 2026-09-28.
 - Product lifecycle, data model/locks, account/admin policy, API/idempotency, frontend, tooling, local runtime, testing, migrations and observability specifications.
 - Initial threat model, acceptance matrix, decision register and decision report.
-- Twenty-seven Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
+- Twenty-nine Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
 - Backend and frontend dependency locks, checks and starter scaffolds.
 - Custom UUID-keyed Django user model with normalized unique email and generated initial migration.
 - Fresh PostgreSQL 17.11 connectivity verified through a temporary Docker container; all migrations, including `users.0001_initial`, applied successfully.
@@ -46,7 +46,7 @@ The reviewed Group-admin privilege-escalation path is closed in the current impl
 
 ## In Progress
 
-Production-readiness hardening is in progress. The local account experience remains unchanged; fail-closed production settings, explicit trusted-proxy parsing, cross-source identity limits, verified-account enforcement and a bounded SMTP outbox are implemented. The 153-test PostgreSQL backend suite, frontend checks/build, read-only Chromium accessibility E2E and independent security review pass. SMTP has only been exercised through a test backend. Provider-backed payment, hosted backup/DR, CI and deployment/operations remain later increments. The application is not ready for public or real-customer use.
+Production-readiness hardening is in progress. The local account experience remains unchanged; fail-closed production settings, explicit trusted-proxy parsing, cross-source identity limits, verified-account enforcement and a bounded SMTP outbox are implemented. Stripe-hosted sandbox checkout, signature-verified minimal webhook receipts, manual capture and safe retry/late-event handling are implemented. The 164-test PostgreSQL backend suite, backend static/config/schema checks, frontend checks/build and four Chromium E2E tests pass. Independent payment review found no blocking code findings. SMTP has only been exercised through a test backend; real Stripe sandbox delivery has not been validated because credentials/account are unavailable. Hosted backup/DR, CI and deployment/operations remain later increments. The application is not ready for public or real-customer use.
 
 ## Pending Decisions
 
@@ -66,7 +66,7 @@ No blocker for local development. Real public operation still requires provider 
 
 ## Known Issues
 
-External notification delivery, hosted backup/restore and production deployment remain unimplemented. Production-hardening work is committed locally as increments; no push or hosted deployment is performed.
+External notification delivery, hosted backup/restore, CI and production deployment remain unimplemented. The current Stripe sandbox implementation is pending a real provider-account/webhook exercise. Production-hardening work is committed locally as increments; no push or hosted deployment is performed.
 
 ## Technical Debt
 
@@ -92,9 +92,9 @@ Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles
 
 ## Next Steps
 
-1. Complete public-account security and configurable real email delivery without enabling unsafe defaults.
-2. Implement/test provider-backed payment and hosted backup/restore workflows.
-3. Add CI and deployment/operations controls; verify recovery and production readiness in a real environment before public launch.
+1. Implement hosted encrypted backup and automated restore-drill workflow.
+2. Add CI and production artifact gates, then deployment/operations controls.
+3. When secure provider credentials/accounts become available, verify real Stripe sandbox delivery and SMTP; verify recovery and production readiness in a real hosted environment before public launch.
 
 ## Latest Report
 

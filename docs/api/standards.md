@@ -1,6 +1,6 @@
 # HTTP API Standards
 
-Status: Catalog read endpoints, same-origin session/CSRF account endpoints, owner-scoped order endpoints, PostgreSQL-backed authentication attempt limits, local password recovery and demo email-verification endpoints are implemented. Registration/recovery/verification are restricted to local DEBUG mode; public-account protections remain deferred. [ADR-0017](../decisions/ADR-0017-http-api-contract.md), [ADR-0024](../decisions/ADR-0024-authentication-attempt-limits.md), [ADR-0025](../decisions/ADR-0025-local-account-recovery-and-email-verification.md).
+Status: Catalog read endpoints, same-origin session/CSRF account endpoints, owner-scoped order endpoints, PostgreSQL-backed authentication attempt limits, local password recovery and demo email-verification endpoints are implemented. Registration/recovery/verification are restricted to local DEBUG mode unless the separately gated public-account path is explicitly configured. Order payment starts through the configured local simulator or Stripe sandbox; Stripe confirmation is webhook-driven. No live payment processing is enabled. [ADR-0017](../decisions/ADR-0017-http-api-contract.md), [ADR-0024](../decisions/ADR-0024-authentication-attempt-limits.md), [ADR-0025](../decisions/ADR-0025-local-account-recovery-and-email-verification.md), [ADR-0030](../decisions/ADR-0030-stripe-sandbox-checkout.md).
 
 ## Contract
 
@@ -25,8 +25,9 @@ JSON under /api/v1/, lower-case plural resources, snake_case fields, UUID string
 | POST | /api/v1/orders/ | Customer; CSRF + idempotency | 201 initial order |
 | GET | /api/v1/orders/ | Customer, own records | 200 paginated |
 | GET | /api/v1/orders/{id}/ | Owner | 200 current order |
-| POST | /api/v1/orders/{id}/payment/ | Owner; CSRF + idempotency | 200 simulation outcome |
+| POST | /api/v1/orders/{id}/payment/ | Owner; CSRF + idempotency | 200 payment state; `checkout_url` only for Stripe sandbox |
 | POST | /api/v1/orders/{id}/cancel/ | Owner; CSRF + idempotency | 200 cancelled order |
+| POST | /api/v1/payments/stripe/webhook/ | Stripe sandbox signature; provider only | 204 accepted/ignored; 400 invalid/conflicting event; 503 retryable provider failure |
 | GET | /health/live/ | Deployment health surface | 200 process alive |
 | GET | /health/ready/ | Deployment health surface | 200 DB reachable; 503 otherwise |
 
@@ -38,7 +39,9 @@ items is a list of product_id, quantity and expected_unit_price. delivery_addres
 
 Unsafe session and customer operations require the `X-CSRFToken` header, obtained from the no-store CSRF bootstrap endpoint. The CSRF cookie is HttpOnly; clients use the token returned in the bootstrap JSON. Fetch a fresh token after login/logout rotation. Login failures use one generic response for unknown email, wrong password and staff accounts. Customer sessions expire after 12 hours; staff sessions after one hour. Registration, password recovery and email-verification are available only with `DEBUG=true` and are not public account mechanisms. Recovery responses do not reveal account eligibility. The local verification flag does not gate sign-in and does not prove mailbox ownership.
 
-Order creation and state-changing actions require UUIDv4 `Idempotency-Key`; keys are scoped by customer and operation. Responses include id, state, items with snapshots, subtotal, shipping_total, total, currency, expires_at and timestamps. Address is returned only in the owner's detail response. Payment response reports succeeded or failed as a domain outcome (200), not a server error. Do not include internal permission flags or hashes in customer summaries.
+Order creation and state-changing actions require UUIDv4 `Idempotency-Key`; keys are scoped by customer and operation. Responses include id, state, items with snapshots, subtotal, shipping_total, total, currency, expires_at and timestamps. Address is returned only in the owner's detail response. The payment operation never accepts card data or a client-selected outcome. In Stripe sandbox mode it returns a server-created hosted Checkout URL; the browser return is informational and cannot confirm an order. A raw-body signature-verified provider webhook is authoritative. Exact amount, capturable amount, currency, payment intent, order state, deadline and reservation are checked before capture. Temporary capture/cancel failure returns 503 so the provider can retry. The local simulator remains the default only with DEBUG enabled.
+
+The Stripe webhook endpoint is the sole CSRF-exempt route because its trust mechanism is Stripe's `Stripe-Signature` over the original request bytes. It processes only the allowlisted authorization event and stores a minimal idempotent receipt; raw provider payloads are not persisted. Unrelated signed events and unknown local attempts have no business effect. Never expose Stripe secrets to the frontend.
 
 ## Lists
 

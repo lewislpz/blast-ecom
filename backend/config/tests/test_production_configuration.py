@@ -19,6 +19,7 @@ def valid_configuration() -> dict[str, object]:
         "FRONTEND_BASE_URL": "https://shop.example.com",
         "SECURE_HSTS_SECONDS": 86400,
         "DATABASE_SSLMODE": "verify-full",
+        "PAYMENT_PROVIDER": "disabled",
         "PUBLIC_ACCOUNT_FLOWS_ENABLED": True,
         "EMAIL_BACKEND": "django.core.mail.backends.smtp.EmailBackend",
         "EMAIL_HOST": "smtp.example.com",
@@ -35,6 +36,22 @@ def test_production_configuration_accepts_secure_public_account_setup() -> None:
     validate_production_configuration(valid_configuration())
 
 
+def test_production_configuration_allows_only_explicit_stripe_sandbox_credentials() -> None:
+    configuration = valid_configuration()
+    configuration.update(
+        {
+            "PAYMENT_PROVIDER": "stripe_sandbox",
+            "STRIPE_SECRET_KEY": "sk_test_not-a-real-secret",
+            "STRIPE_WEBHOOK_SECRET": "whsec_not-a-real-secret",
+        }
+    )
+    validate_production_configuration(configuration)
+
+    configuration["STRIPE_SECRET_KEY"] = "sk_live_not-a-real-secret"
+    with pytest.raises(ImproperlyConfigured, match="test-mode"):
+        validate_production_configuration(configuration)
+
+
 @pytest.mark.parametrize(
     ("key", "value", "message"),
     [
@@ -47,6 +64,7 @@ def test_production_configuration_accepts_secure_public_account_setup() -> None:
         ("FRONTEND_BASE_URL", "http://shop.example.com", "HTTPS"),
         ("SECURE_HSTS_SECONDS", 0, "HSTS"),
         ("DATABASE_SSLMODE", "require", "verify-full"),
+        ("PAYMENT_PROVIDER", "simulator", "DEBUG-only"),
         ("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend", "SMTP"),
         ("EMAIL_HOST_PASSWORD", "", "EMAIL_HOST_PASSWORD"),
         ("EMAIL_USE_TLS", False, "TLS or SSL"),
@@ -122,6 +140,9 @@ def test_valid_production_environment_loads_secure_settings() -> None:
         "DJANGO_EMAIL_HOST_PASSWORD": "not-a-real-secret",
         "DJANGO_EMAIL_USE_TLS": "true",
         "DJANGO_DEFAULT_FROM_EMAIL": "Blast Ecom <no-reply@example.com>",
+        "BLAST_ECOM_PAYMENT_PROVIDER": "stripe_sandbox",
+        "BLAST_ECOM_STRIPE_SECRET_KEY": "sk_test_not-a-real-secret",
+        "BLAST_ECOM_STRIPE_WEBHOOK_SECRET": "whsec_not-a-real-secret",
     }
     result = subprocess.run(
         [
@@ -130,7 +151,8 @@ def test_valid_production_environment_loads_secure_settings() -> None:
             "import config.settings as s; assert not s.DEBUG; "
             "assert s.SECURE_SSL_REDIRECT and s.SESSION_COOKIE_SECURE; "
             "assert s.DATABASES['default']['OPTIONS']['sslmode'] == 'verify-full'; "
-            "assert s.REQUIRE_VERIFIED_CUSTOMER_EMAIL",
+            "assert s.REQUIRE_VERIFIED_CUSTOMER_EMAIL; "
+            "assert s.PAYMENT_PROVIDER == 'stripe_sandbox'",
         ],
         cwd=backend_root,
         env=environment,
@@ -140,3 +162,29 @@ def test_valid_production_environment_loads_secure_settings() -> None:
     )
 
     assert result.returncode == 0, result.stderr
+
+
+def test_production_configuration_rejects_simulator_provider_at_startup() -> None:
+    backend_root = Path(__file__).resolve().parents[2]
+    environment = {
+        "PATH": os.environ.get("PATH", ""),
+        "PYTHONPATH": str(backend_root),
+        "DJANGO_DEBUG": "false",
+        "DJANGO_SECRET_KEY": "u" * 64,
+        "DJANGO_ALLOWED_HOSTS": "shop.example.com",
+        "DJANGO_CSRF_TRUSTED_ORIGINS": "https://shop.example.com",
+        "BLAST_ECOM_FRONTEND_URL": "https://shop.example.com",
+        "DATABASE_SSLMODE": "verify-full",
+        "BLAST_ECOM_PAYMENT_PROVIDER": "simulator",
+    }
+    result = subprocess.run(
+        [sys.executable, "-c", "import config.settings"],
+        cwd=backend_root,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "DEBUG=true" in result.stderr
