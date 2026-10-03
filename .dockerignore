@@ -3,7 +3,9 @@
 .codex
 .orchestrator
 .venv
+.venv-*
 **/.venv
+**/.venv-*
 **/node_modules
 **/__pycache__
 **/.pytest_cache

@@ -8,7 +8,7 @@ Phase 3 — Testing & pre-production hardening. The local commerce slice and Com
 
 ## Current Objective
 
-The local-development milestone is complete and verified. The current objective is to harden public account flows and progressively build/test the remaining external integration and operational layers. Live email delivery, payment settlement, hosted backup policy/lifecycle, CI and public deployment require provider accounts, credentials, infrastructure and operational validation not present in this workspace; code can be prepared and sandbox-tested without claiming those external outcomes.
+The local-development milestone is complete and verified. Production image targets and the least-privilege CI workflow are implemented and locally verified; the current objective is to validate them in the connected GitHub repository and configure required checks before treating main-branch artifacts as reviewed. Live email delivery, payment settlement, hosted backup policy/lifecycle and public deployment still require provider accounts, credentials, infrastructure and operational validation not present in this workspace; code can be prepared and sandbox-tested without claiming those external outcomes.
 
 ## Completed
 
@@ -16,7 +16,7 @@ The local-development milestone is complete and verified. The current objective 
 - ADR-0013 through ADR-0021: nine grouped decisions selected by Codex under explicit user delegation on 2026-09-28.
 - Product lifecycle, data model/locks, account/admin policy, API/idempotency, frontend, tooling, local runtime, testing, migrations and observability specifications.
 - Initial threat model, acceptance matrix, decision register and decision report.
-- Thirty Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
+- Thirty-one Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
 - Backend and frontend dependency locks, checks and starter scaffolds.
 - Custom UUID-keyed Django user model with normalized unique email and generated initial migration.
 - Fresh PostgreSQL 17.11 connectivity verified through a temporary Docker container; all migrations, including `users.0001_initial`, applied successfully.
@@ -42,6 +42,7 @@ The local-development milestone is complete and verified. The current objective 
 - DEBUG-only local PostgreSQL backup/restore commands now use custom-format archives, owner-only backup file permissions, no-overwrite backup paths outside the application build context and fresh-database-only restore. Command safety tests pass, and an actual custom-format dump/restore round trip against a disposable PostgreSQL 17.11 database preserved catalog, stock and user counts. This does not constitute production backup/DR.
 - Containerized local development includes locked Python/Node dependencies, non-root API/frontend images, loopback-only browser/database ports, persistent PostgreSQL storage, internal service networking and explicit migration/seed operations. Fresh migrations, all service health checks, frontend-to-API catalog access and the Chromium purchase/account/accessibility E2E journey passed. Docker Compose is not a production deployment.
 - Opt-in S3-compatible PostgreSQL backup/restore requires a versioned bucket, requests and verifies SSE-S3, exact object versions, metadata/tags, object bytes and SHA-256 before success; restore targets only a new database distinct from the source. Moto S3 API plus disposable PostgreSQL 17.11 round-trip verification preserved representative product/order/user counts. This does not configure hosted bucket policy, lifecycle enforcement, credentials, scheduling, alerts or recovery objectives.
+- Production API and frontend container targets exist: Gunicorn/WhiteNoise for Django and unprivileged Nginx for static SPA. A read-only GitHub Actions workflow is configured for locked tests, drift checks, scans, image builds and SHA-addressed main-branch artifacts; it has not yet run in GitHub or been made a required branch check.
 
 The reviewed Group-admin privilege-escalation path is closed in the current implementation: ordinary staff cannot access Group administration, while active staff superusers retain break-glass access. External notification delivery remains unimplemented; local console messages are simulations. Remote backup/restore application code exists, but hosted operation and production recovery remain unverified. Current auth attempt limits are application-level only. API registration, password reset, demo verification, notification processing and local backup commands are DEBUG-only; no real mailbox ownership, public-account or production readiness is claimed. Remote dump staging uses plaintext in private temporary storage, which remains a hosted deployment risk to mitigate.
 
@@ -91,10 +92,11 @@ Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles
 | R-12 | Runtime lines mistaken for verified lock set | Exact Python/JS locks and local checks are verified; PostgreSQL 17.11 connection and initial migration are now verified | Resolved for scaffold |
 | R-13 | No reproducible local PostgreSQL setup | Compose API, frontend, PostgreSQL and maintenance with named persistence, health checks and documented migration/seed workflow | Resolved for local development |
 | R-14 | Remote backup policy and temporary plaintext exposure | Require exact version/read-back checksum; restrict temp permissions; configure least-privilege hosted identity, protected ephemeral storage and tested lifecycle before real data | Open — hosted environment not provisioned |
+| R-15 | CI/production image workflow not validated on GitHub | Run the workflow and configure required checks/reviews after repository integration; audit action pins and scanner output | Open — hosted workflow run unavailable |
 
 ## Next Steps
 
-1. Add CI and production artifact gates, then deployment/operations controls.
+1. Run CI in the connected GitHub repository, review scans and configure required branch checks.
 2. Provision and independently validate hosted backup permissions, lifecycle, scheduling, monitoring and recovery after an environment is selected.
 3. When secure provider credentials/accounts become available, verify real Stripe sandbox delivery and SMTP; verify recovery and production readiness in a real hosted environment before public launch.
 

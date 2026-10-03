@@ -23,6 +23,10 @@
 
 [Tooling](development/tooling.md), [local development](development/local-development.md), [frontend](development/frontend.md), [testing](development/testing-strategy.md), [migrations](development/migrations.md), [first implementation slice](development/first-slice.md), [backup and restore operations](operations/backups.md), [observability](operations/observability.md).
 
+## Delivery
+
+[Continuous integration](ci-cd/continuous-integration.md).
+
 ## State and Maintenance
 
 Capabilities: Implemented, Planned, Proposed, Under discussion, Deprecated. Decision register: DECIDED, PROPOSED, UNDER DISCUSSION, DEFERRED, REJECTED. ADR states: Proposed, Accepted, Rejected, Superseded, Deprecated.

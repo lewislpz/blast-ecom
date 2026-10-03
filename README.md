@@ -4,7 +4,7 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 
 ## Current Status
 
-**Phase 3 — Testing & pre-production hardening.** The local development slice is complete. Stripe-hosted sandbox code and an opt-in S3-compatible PostgreSQL backup/restore workflow are implemented with local tests; real Stripe account/webhook delivery, hosted bucket policy/lifecycle, CI and hosted operations remain unverified or incomplete. This is not production-ready commerce.
+**Phase 3 — Testing & pre-production hardening.** The local development slice is complete. Stripe-hosted sandbox code and an opt-in S3-compatible PostgreSQL backup/restore workflow are implemented with local tests. A least-privilege CI workflow and production Docker targets are implemented locally, but have not yet run in GitHub Actions; real Stripe account/webhook delivery, hosted bucket policy/lifecycle and hosted operations remain unverified. This is not production-ready commerce.
 
 ## Implemented
 
@@ -23,10 +23,11 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 - Local Compose API, Vite frontend, PostgreSQL and maintenance worker; locked app dependencies, explicit Django migrations, idempotent fictional catalog seed, database readiness endpoint and restartable bounded expiry/notification processing.
 - DEBUG-only local PostgreSQL custom-format backup and restore with restrictive file permissions, no-overwrite backup paths and fresh-database-only targets.
 - Opt-in S3-compatible PostgreSQL backup and fresh-database restore with required bucket versioning, SSE-S3, exact-version checks and read-back SHA-256 verification; hosted bucket policy, lifecycle and recovery are not configured.
+- Production API (Gunicorn/WhiteNoise) and static storefront (unprivileged Nginx) Docker targets; CI configuration builds and scans them, but a hosted workflow run is pending.
 
 ## Planned
 
-Hosted deployment and hosted backup/recovery are not validated; the remote backup workflow still requires a secured bucket policy/lifecycle, hosted credentials, scheduling/monitoring and real restore drills. Real external notification delivery is not implemented. Public account use is not ready: SMTP delivery and application attempt limits do not replace trusted-proxy validation, edge-level controls, staff MFA or monitoring required before public exposure. Payments are limited to local simulation or an unverified sandbox integration; live settlement is unsupported. Taxes, shipping charges and fulfillment remain unspecified. Real sales and public deployment are out of scope.
+CI has not yet executed on GitHub and repository branch protection/required checks are not configured. Hosted deployment and hosted backup/recovery are not validated; the remote backup workflow still requires a secured bucket policy/lifecycle, hosted credentials, scheduling/monitoring and real restore drills. Real external notification delivery is not implemented. Public account use is not ready: SMTP delivery and application attempt limits do not replace trusted-proxy validation, edge-level controls, staff MFA or monitoring required before public exposure. Payments are limited to local simulation or an unverified sandbox integration; live settlement is unsupported. Taxes, shipping charges and fulfillment remain unspecified. Real sales and public deployment are out of scope.
 
 ## Architecture and Stack
 

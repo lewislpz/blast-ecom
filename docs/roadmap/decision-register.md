@@ -1,6 +1,6 @@
 # Decision Register and Deferred Gates
 
-Updated: 2026-10-01. Decisions 0013–0021 were made by Codex under explicit user delegation for that round; ADR-0024 was selected under the owner's 2026-10-01 autonomous implementation delegation. That delegation applies to the active production-readiness goal; material technical choices will be recorded in ADRs and still require external resources for live verification. [ADR index](../decisions/README.md).
+Updated: 2026-10-03. Decisions 0013–0021 were made by Codex under explicit user delegation for that round; ADR-0024 was selected under the owner's 2026-10-01 autonomous implementation delegation. ADR-0031 and ADR-0032 were selected under the same active production-readiness implementation delegation. That delegation covers this goal only; material technical choices are recorded in ADRs and still require external resources for live verification. [ADR index](../decisions/README.md).
 
 ## Current Baseline — DECIDED
 
@@ -50,7 +50,8 @@ Routine implementation choices can follow the accepted conventions; substantive 
 | RabbitMQ/Celery/integration events | DEFERRED | Durable external work or measured separation needs |
 | Saga/outbox/inbox for external systems | DEFERRED | Cross-system atomicity/delivery problem; local notification intent is not a generic bus |
 | App images/registry/release tags | DEFERRED | Working tested app and packaging milestone |
-| CI provider/config and protected-branch checks | DEFERRED | Local checks and Git repository exist |
+| CI provider/config | DECIDED — GitHub Actions with read-only pull-request checks and SHA-addressed temporary artifacts | ADR-0032 |
+| Hosted workflow run and protected-branch checks | DEFERRED | Workflow is implemented locally; repository integration/owner settings and first hosted run are unavailable in this workspace |
 | Hosted development/staging/production | DEFERRED | Release audience, access and budget known |
 | Cloud, Kubernetes, Helm, GitOps, Terraform | DEFERRED | Deployment/platform need and cost comparison |
 | Production secrets/TLS/DNS/networking/storage | DEFERRED | Hosted topology selected |

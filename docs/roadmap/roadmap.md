@@ -4,12 +4,12 @@ Status: The local first slice and Compose platform are complete; Phase 3 — Tes
 
 | Phase | Intended outcome | Entry condition |
 |---|---|---|
-| 0 — Product Definition & Architecture | Initial local scope, domain rules, security and tool baseline documented | Complete; 30 Accepted ADRs and one Superseded ADR |
+| 0 — Product Definition & Architecture | Initial local scope, domain rules, security and tool baseline documented | Complete; 31 Accepted ADRs and one Superseded ADR |
 | 1 — Core Domain & Application Foundation | Tested local commerce journey and core abuse controls | Complete for the documented local first slice; see project status and ADRs |
 | 2 — Local Platform | Reproducible local execution | Complete for local Compose API, frontend, PostgreSQL and maintenance workflow |
 | 3 — Testing & Quality | Behavior, contract and browser verification | Current: security review and automated test fixtures pass; external Stripe sandbox validation is pending |
-| 4 — Continuous Integration | Automated agreed checks | Pending: implement PR checks before provider-backed production release |
-| 5 — Registry & Release Management | Versioned, reproducible artifacts | Packaging and release strategy selected |
+| 4 — Continuous Integration | Automated agreed checks | Workflow and production image targets implemented locally; first hosted run and branch protection pending |
+| 5 — Registry & Release Management | Versioned, reproducible artifacts | Local workflow artifacts are SHA-addressed and temporary; registry and release strategy remain deferred |
 | 6 — Deployment Platform Evaluation | Suitable deployment and rollback | Application, production artifacts and CI work; no provider account/budget yet |
 | 7 — Continuous Delivery | Controlled promotion | Environment and deployment model selected |
 | 8 — Infrastructure as Code | Reproducible infrastructure | Hosting, state and ownership selected; no cloud resources provisioned |

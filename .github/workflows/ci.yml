@@ -1,0 +1,204 @@
+name: Blast Ecom CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17.11-bookworm
+        env:
+          POSTGRES_DB: blast_ecom_test
+          POSTGRES_USER: blast_ecom_test
+          POSTGRES_PASSWORD: blast-ecom-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U blast_ecom_test -d blast_ecom_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: ci-only-not-a-production-secret-0123456789abcdefghijklmnopqrstuvwxyz
+      DATABASE_NAME: blast_ecom_test
+      DATABASE_USER: blast_ecom_test
+      DATABASE_PASSWORD: blast-ecom-test-only
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: "5432"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: 0.12.19
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Install locked backend dependencies
+        working-directory: backend
+        run: uv sync --locked --all-groups
+      - name: Verify scanner policy redacts secret matches
+        working-directory: .github/scripts
+        run: python3 -m unittest discover -s tests -v
+      - name: Check lockfile
+        working-directory: backend
+        run: uv lock --check
+      - name: Lint, formatting and types
+        working-directory: backend
+        run: |
+          uv run --locked ruff check .
+          uv run --locked ruff format --check .
+          uv run --locked mypy modules config
+      - name: Django and migration checks
+        working-directory: backend
+        run: |
+          uv run --locked python manage.py check
+          uv run --locked python manage.py makemigrations --check --dry-run
+      - name: OpenAPI contract drift
+        working-directory: backend
+        run: |
+          uv run --locked python manage.py spectacular --validate --file /tmp/blast-ecom-openapi.yaml
+          diff -u openapi.yaml /tmp/blast-ecom-openapi.yaml
+      - name: Backend tests
+        working-directory: backend
+        run: uv run --locked pytest
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          package-manager-cache: false
+      - name: Install exact frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Frontend checks and dependency audit
+        working-directory: frontend
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run format:check
+          npm test
+          npm audit --audit-level=high
+          npm run build
+
+  production-images:
+    name: Build and scan production images
+    runs-on: ubuntu-24.04
+    needs: [backend, frontend]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Build API image
+        run: docker build --pull --target production --tag blast-ecom-api:${{ github.sha }} --file backend/Dockerfile .
+      - name: Build storefront image
+        run: docker build --pull --target production --tag blast-ecom-frontend:${{ github.sha }} --file frontend/Dockerfile .
+      - name: Scan dependency locks and repository configuration
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          format: json
+          output: ${{ runner.temp }}/trivy-filesystem.json
+          exit-code: "0"
+      - name: Enforce filesystem scan policy
+        run: python3 .github/scripts/check_trivy_report.py "$RUNNER_TEMP/trivy-filesystem.json"
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: blast-ecom-api:${{ github.sha }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          format: json
+          output: ${{ runner.temp }}/trivy-api-image.json
+          exit-code: "0"
+      - name: Enforce API image scan policy
+        run: python3 .github/scripts/check_trivy_report.py "$RUNNER_TEMP/trivy-api-image.json"
+      - name: Scan storefront image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: blast-ecom-frontend:${{ github.sha }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          format: json
+          output: ${{ runner.temp }}/trivy-frontend-image.json
+          exit-code: "0"
+      - name: Enforce storefront image scan policy
+        run: python3 .github/scripts/check_trivy_report.py "$RUNNER_TEMP/trivy-frontend-image.json"
+      - name: Smoke-check API runtime configuration
+        env:
+          IMAGE: blast-ecom-api:${{ github.sha }}
+        run: |
+          test "$(docker image inspect --format '{{.Config.User}}' "$IMAGE")" = "10001:10001"
+          docker run --rm \
+            --env DJANGO_DEBUG=false \
+            --env DJANGO_SECRET_KEY=ci-only-not-a-production-secret-0123456789abcdefghijklmnopqrstuvwxyz \
+            --env DJANGO_ALLOWED_HOSTS=ci.blast-ecom.test \
+            --env DJANGO_CSRF_TRUSTED_ORIGINS=https://shop.blast-ecom.test \
+            --env BLAST_ECOM_FRONTEND_URL=https://shop.blast-ecom.test \
+            --env DJANGO_SECURE_HSTS_SECONDS=3600 \
+            --env DATABASE_SSLMODE=verify-full \
+            --env BLAST_ECOM_PAYMENT_PROVIDER=disabled \
+            --entrypoint gunicorn "$IMAGE" --check-config config.wsgi:application
+      - name: Smoke-check storefront HTTP and SPA fallback
+        env:
+          IMAGE: blast-ecom-frontend:${{ github.sha }}
+          CONTAINER: blast-ecom-frontend-${{ github.run_id }}
+        run: |
+          frontend_user="$(docker image inspect --format '{{.Config.User}}' "$IMAGE")"
+          test -n "$frontend_user"
+          test "$frontend_user" != "0"
+          docker run --detach --name "$CONTAINER" --publish 127.0.0.1:18080:8080 "$IMAGE"
+          trap 'docker rm --force "$CONTAINER" >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18080/health/ready/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:18080/health/ready/
+          curl --fail --silent http://127.0.0.1:18080/account/orders/ | grep -q '<div id="root">'
+      - name: Save commit-addressed image artifacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker save blast-ecom-api:${{ github.sha }} | gzip -1 > "$RUNNER_TEMP/blast-ecom-api-${{ github.sha }}.tar.gz"
+          docker save blast-ecom-frontend:${{ github.sha }} | gzip -1 > "$RUNNER_TEMP/blast-ecom-frontend-${{ github.sha }}.tar.gz"
+      - name: Upload immutable workflow artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: blast-ecom-containers-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/blast-ecom-api-${{ github.sha }}.tar.gz
+            ${{ runner.temp }}/blast-ecom-frontend-${{ github.sha }}.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

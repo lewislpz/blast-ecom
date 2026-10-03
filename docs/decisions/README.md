@@ -35,6 +35,7 @@
 | [ADR-0029](ADR-0029-public-account-security-and-email-delivery.md) | Public Account Security and Email Delivery Boundary | Accepted | 2026-10-01 |
 | [ADR-0030](ADR-0030-stripe-sandbox-checkout.md) | Stripe Sandbox Checkout and Manual Capture | Accepted | 2026-10-01 |
 | [ADR-0031](ADR-0031-versioned-remote-database-backups.md) | Versioned Remote Database Backups | Accepted | 2026-10-03 |
+| [ADR-0032](ADR-0032-ci-security-and-artifact-boundary.md) | CI Security and Artifact Boundary | Accepted | 2026-10-03 |
 
 ## Policy
 
@@ -42,7 +43,7 @@ Significant architectural decisions require explicit user selection or explicit 
 
 Allowed ADR states: Proposed, Accepted, Rejected, Superseded, Deprecated. Deferred topics stay in [project status](../project-status.md) until a meaningful proposal exists.
 
-Update this table in the same change as any ADR creation or status change. A consistency check compares it with ADR contents during documentation verification. No CI automation exists yet.
+Update this table in the same change as any ADR creation or status change. A consistency check compares it with ADR contents during documentation verification. Local CI workflow configuration is implemented under ADR-0032; no hosted run or required-check enforcement has been verified yet.
 
 If a decision changes, preserve its history: mark the old ADR Superseded, create a new Accepted ADR after user selection and link both records.
 
