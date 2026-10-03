@@ -21,7 +21,7 @@
 
 ## Development and Operations
 
-[Tooling](development/tooling.md), [local development](development/local-development.md), [frontend](development/frontend.md), [testing](development/testing-strategy.md), [migrations](development/migrations.md), [first implementation slice](development/first-slice.md), [observability](operations/observability.md).
+[Tooling](development/tooling.md), [local development](development/local-development.md), [frontend](development/frontend.md), [testing](development/testing-strategy.md), [migrations](development/migrations.md), [first implementation slice](development/first-slice.md), [backup and restore operations](operations/backups.md), [observability](operations/observability.md).
 
 ## State and Maintenance
 

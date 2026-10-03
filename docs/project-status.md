@@ -1,6 +1,6 @@
 # Blast Ecom Project Status
 
-Updated: 2026-10-02
+Updated: 2026-10-03
 
 ## Current Phase
 
@@ -8,7 +8,7 @@ Phase 3 — Testing & pre-production hardening. The local commerce slice and Com
 
 ## Current Objective
 
-The local-development milestone is complete and verified. The current objective is to harden public account flows and progressively build/test the remaining external integration and operational layers. Live email delivery, payment settlement, hosted backups and public deployment require provider accounts, credentials, infrastructure and operational validation not present in this workspace; code can be prepared and sandbox-tested without claiming those external outcomes.
+The local-development milestone is complete and verified. The current objective is to harden public account flows and progressively build/test the remaining external integration and operational layers. Live email delivery, payment settlement, hosted backup policy/lifecycle, CI and public deployment require provider accounts, credentials, infrastructure and operational validation not present in this workspace; code can be prepared and sandbox-tested without claiming those external outcomes.
 
 ## Completed
 
@@ -16,7 +16,7 @@ The local-development milestone is complete and verified. The current objective 
 - ADR-0013 through ADR-0021: nine grouped decisions selected by Codex under explicit user delegation on 2026-09-28.
 - Product lifecycle, data model/locks, account/admin policy, API/idempotency, frontend, tooling, local runtime, testing, migrations and observability specifications.
 - Initial threat model, acceptance matrix, decision register and decision report.
-- Twenty-nine Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
+- Thirty Accepted ADRs and one Superseded ADR. The original first eleven records remain unchanged; ADR-0018 preserves its earlier accepted UI state design and is superseded only for type-generation tooling.
 - Backend and frontend dependency locks, checks and starter scaffolds.
 - Custom UUID-keyed Django user model with normalized unique email and generated initial migration.
 - Fresh PostgreSQL 17.11 connectivity verified through a temporary Docker container; all migrations, including `users.0001_initial`, applied successfully.
@@ -41,12 +41,13 @@ The local-development milestone is complete and verified. The current objective 
 - DEBUG-only local notification processing uses bounded PostgreSQL `skip_locked` claims, records retry metadata, prioritizes never-attempted intents and leaves failed work pending. PostgreSQL tests cover retry after failure/restart, concurrent worker claims and DEBUG-only execution. Messages are printed only through Django's console email backend; external delivery is not implemented.
 - DEBUG-only local PostgreSQL backup/restore commands now use custom-format archives, owner-only backup file permissions, no-overwrite backup paths outside the application build context and fresh-database-only restore. Command safety tests pass, and an actual custom-format dump/restore round trip against a disposable PostgreSQL 17.11 database preserved catalog, stock and user counts. This does not constitute production backup/DR.
 - Containerized local development includes locked Python/Node dependencies, non-root API/frontend images, loopback-only browser/database ports, persistent PostgreSQL storage, internal service networking and explicit migration/seed operations. Fresh migrations, all service health checks, frontend-to-API catalog access and the Chromium purchase/account/accessibility E2E journey passed. Docker Compose is not a production deployment.
+- Opt-in S3-compatible PostgreSQL backup/restore requires a versioned bucket, requests and verifies SSE-S3, exact object versions, metadata/tags, object bytes and SHA-256 before success; restore targets only a new database distinct from the source. Moto S3 API plus disposable PostgreSQL 17.11 round-trip verification preserved representative product/order/user counts. This does not configure hosted bucket policy, lifecycle enforcement, credentials, scheduling, alerts or recovery objectives.
 
-The reviewed Group-admin privilege-escalation path is closed in the current implementation: ordinary staff cannot access Group administration, while active staff superusers retain break-glass access. External notification delivery remains unimplemented; local console messages are simulations. Hosted backup/restore and production application images remain unimplemented. Current auth attempt limits are application-level only. API registration, password reset, demo verification, notification processing and local backup commands are DEBUG-only; no real mailbox ownership, public-account or production readiness is claimed.
+The reviewed Group-admin privilege-escalation path is closed in the current implementation: ordinary staff cannot access Group administration, while active staff superusers retain break-glass access. External notification delivery remains unimplemented; local console messages are simulations. Remote backup/restore application code exists, but hosted operation and production recovery remain unverified. Current auth attempt limits are application-level only. API registration, password reset, demo verification, notification processing and local backup commands are DEBUG-only; no real mailbox ownership, public-account or production readiness is claimed. Remote dump staging uses plaintext in private temporary storage, which remains a hosted deployment risk to mitigate.
 
 ## In Progress
 
-Production-readiness hardening is in progress. The local account experience remains unchanged; fail-closed production settings, explicit trusted-proxy parsing, cross-source identity limits, verified-account enforcement and a bounded SMTP outbox are implemented. Stripe-hosted sandbox checkout, signature-verified minimal webhook receipts, manual capture and safe retry/late-event handling are implemented. The 164-test PostgreSQL backend suite, backend static/config/schema checks, frontend checks/build and four Chromium E2E tests pass. Independent payment review found no blocking code findings. SMTP has only been exercised through a test backend; real Stripe sandbox delivery has not been validated because credentials/account are unavailable. Hosted backup/DR, CI and deployment/operations remain later increments. The application is not ready for public or real-customer use.
+Production-readiness hardening is in progress. The local account experience remains unchanged; fail-closed production settings, explicit trusted-proxy parsing, cross-source identity limits, verified-account enforcement and a bounded SMTP outbox are implemented. Stripe-hosted sandbox checkout, signature-verified minimal webhook receipts, manual capture and safe retry/late-event handling are implemented. The opt-in S3-compatible backup workflow and local PostgreSQL restore drill are implemented. Full verification details are recorded in the active hardening plan and its gate evidence. SMTP has only been exercised through a test backend; real Stripe sandbox delivery has not been validated because credentials/account are unavailable. Hosted backup policy/lifecycle/credentials and CI/deployment/operations remain incomplete. The application is not ready for public or real-customer use.
 
 ## Pending Decisions
 
@@ -55,7 +56,7 @@ See the [decision register](roadmap/decision-register.md) for complete trigger-b
 - Implementation details: remaining API contract details and empirical query plans.
 - Before public accounts: externally validate production settings and proxy topology; verify SMTP/sender-domain delivery; supervise and alert on outbox work; establish shared/edge volumetric controls, staff MFA/access restrictions, privacy retention/erasure and a production security review. Application-level verified-email gating is implemented but does not satisfy these operational gates.
 - Before real sales: markets/jurisdiction, taxes/invoicing, actual shipping charges/coverage and fulfillment.
-- Before hosted operations: provider/account/credentials, secrets/TLS/networking, encrypted/versioned backup and restore drill, agreed RPO/RTO, SLOs and actionable monitoring. Provider-independent code and disposable-service tests can be built before an account is available.
+- Before hosted operations: provider/account/credentials, secrets/TLS/networking, least-privilege bucket policy, lifecycle enforcement, protected temporary storage, scheduled encrypted/versioned backups, hosted restore drill, agreed RPO/RTO, SLOs and actionable monitoring. Provider-independent code and disposable-service tests can be built before an account is available.
 - Conditional: broker/cache, external payments/events, tracing, Kubernetes/Helm/GitOps/Terraform and scaling.
 
 These are active readiness work items, not claims that the capability exists. Redis/RabbitMQ or Kubernetes are not mandatory next steps; adoption must still be justified by deployment needs.
@@ -66,7 +67,7 @@ No blocker for local development. Real public operation still requires provider 
 
 ## Known Issues
 
-External notification delivery, hosted backup/restore, CI and production deployment remain unimplemented. The current Stripe sandbox implementation is pending a real provider-account/webhook exercise. Production-hardening work is committed locally as increments; no push or hosted deployment is performed.
+External notification delivery, hosted backup operations, CI and production deployment remain incomplete. The current Stripe sandbox implementation is pending a real provider-account/webhook exercise. Production-hardening work is committed locally as increments; no push or hosted deployment is performed.
 
 ## Technical Debt
 
@@ -89,11 +90,12 @@ Known debt: `frontend/src/styles/global.css` currently centralizes all UI styles
 | R-11 | Maintenance delay holds stock | Deadline checks, durable state, backlog visibility | Open |
 | R-12 | Runtime lines mistaken for verified lock set | Exact Python/JS locks and local checks are verified; PostgreSQL 17.11 connection and initial migration are now verified | Resolved for scaffold |
 | R-13 | No reproducible local PostgreSQL setup | Compose API, frontend, PostgreSQL and maintenance with named persistence, health checks and documented migration/seed workflow | Resolved for local development |
+| R-14 | Remote backup policy and temporary plaintext exposure | Require exact version/read-back checksum; restrict temp permissions; configure least-privilege hosted identity, protected ephemeral storage and tested lifecycle before real data | Open — hosted environment not provisioned |
 
 ## Next Steps
 
-1. Implement hosted encrypted backup and automated restore-drill workflow.
-2. Add CI and production artifact gates, then deployment/operations controls.
+1. Add CI and production artifact gates, then deployment/operations controls.
+2. Provision and independently validate hosted backup permissions, lifecycle, scheduling, monitoring and recovery after an environment is selected.
 3. When secure provider credentials/accounts become available, verify real Stripe sandbox delivery and SMTP; verify recovery and production readiness in a real hosted environment before public launch.
 
 ## Latest Report

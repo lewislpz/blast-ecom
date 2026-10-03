@@ -4,7 +4,7 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 
 ## Current Status
 
-**Phase 3 — Testing & pre-production hardening.** The local development slice is complete. A Stripe-hosted sandbox integration is implemented and covered by provider-boundary tests and a mocked browser redirect; a real Stripe sandbox account/webhook run, hosted backups, CI and hosted operations remain unverified or unimplemented. This is not production-ready commerce.
+**Phase 3 — Testing & pre-production hardening.** The local development slice is complete. Stripe-hosted sandbox code and an opt-in S3-compatible PostgreSQL backup/restore workflow are implemented with local tests; real Stripe account/webhook delivery, hosted bucket policy/lifecycle, CI and hosted operations remain unverified or incomplete. This is not production-ready commerce.
 
 ## Implemented
 
@@ -22,10 +22,11 @@ Blast Ecom is a single-seller ecommerce platform for physical goods in EUR. The 
 - Stripe sandbox Checkout adapter uses server-owned order snapshots, hosted card entry, signed authorization webhooks, manual capture, idempotent receipts and late/mismatched authorization cancellation. Real provider delivery has not yet been tested; live payments are not supported.
 - Local Compose API, Vite frontend, PostgreSQL and maintenance worker; locked app dependencies, explicit Django migrations, idempotent fictional catalog seed, database readiness endpoint and restartable bounded expiry/notification processing.
 - DEBUG-only local PostgreSQL custom-format backup and restore with restrictive file permissions, no-overwrite backup paths and fresh-database-only targets.
+- Opt-in S3-compatible PostgreSQL backup and fresh-database restore with required bucket versioning, SSE-S3, exact-version checks and read-back SHA-256 verification; hosted bucket policy, lifecycle and recovery are not configured.
 
 ## Planned
 
-Hosted deployment, hosted backup/recovery and real external notification delivery are not implemented. Public account use is not ready: SMTP delivery and application attempt limits do not replace trusted-proxy validation, edge-level controls, staff MFA or monitoring required before public exposure. Payments are limited to local simulation or an unverified sandbox integration; live settlement is unsupported. Taxes, shipping charges and fulfillment remain unspecified. Real sales and public deployment are out of scope.
+Hosted deployment and hosted backup/recovery are not validated; the remote backup workflow still requires a secured bucket policy/lifecycle, hosted credentials, scheduling/monitoring and real restore drills. Real external notification delivery is not implemented. Public account use is not ready: SMTP delivery and application attempt limits do not replace trusted-proxy validation, edge-level controls, staff MFA or monitoring required before public exposure. Payments are limited to local simulation or an unverified sandbox integration; live settlement is unsupported. Taxes, shipping charges and fulfillment remain unspecified. Real sales and public deployment are out of scope.
 
 ## Architecture and Stack
 
@@ -38,7 +39,7 @@ See [ADRs](docs/decisions/README.md), [architecture](docs/architecture/overview.
 
 ## Local Checks
 
-The [local development guide](docs/development/local-development.md) lists the Docker Compose startup, migration, seed, backup and restore commands.
+The [local development guide](docs/development/local-development.md) lists Docker Compose startup, migration, seed and local backup commands. The [backup operations guide](docs/operations/backups.md) documents the separately opt-in S3-compatible workflow and its hosted limitations.
 
 ## Documentation
 

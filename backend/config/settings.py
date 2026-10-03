@@ -187,6 +187,23 @@ if PAYMENT_PROVIDER == "stripe_sandbox" and (
         "Stripe sandbox requires BLAST_ECOM_STRIPE_SECRET_KEY (sk_test_) and "
         "BLAST_ECOM_STRIPE_WEBHOOK_SECRET (whsec_)."
     )
+REMOTE_DATABASE_BACKUP_ENABLED = parse_boolean(
+    os.environ.get("BLAST_ECOM_REMOTE_BACKUP_ENABLED"),
+    name="BLAST_ECOM_REMOTE_BACKUP_ENABLED",
+    default=False,
+)
+BACKUP_S3_BUCKET = os.environ.get("BLAST_ECOM_BACKUP_S3_BUCKET", "")
+BACKUP_S3_PREFIX = os.environ.get("BLAST_ECOM_BACKUP_S3_PREFIX", "blast-ecom/postgresql")
+BACKUP_S3_REGION = os.environ.get("BLAST_ECOM_BACKUP_S3_REGION", "")
+BACKUP_S3_ENDPOINT_URL = os.environ.get("BLAST_ECOM_BACKUP_S3_ENDPOINT_URL", "")
+BACKUP_S3_ALLOW_LOCAL_HTTP = DEBUG and parse_boolean(
+    os.environ.get("BLAST_ECOM_BACKUP_ALLOW_LOCAL_HTTP"),
+    name="BLAST_ECOM_BACKUP_ALLOW_LOCAL_HTTP",
+    default=False,
+)
+BACKUP_RETENTION_DAYS = int(os.environ.get("BLAST_ECOM_BACKUP_RETENTION_DAYS", "35"))
+if not 1 <= BACKUP_RETENTION_DAYS <= 3650:
+    raise RuntimeError("BLAST_ECOM_BACKUP_RETENTION_DAYS must be between 1 and 3650.")
 ACCOUNT_TOKEN_MAX_AGE = 60 * 60
 PASSWORD_RESET_TIMEOUT = 60 * 60
 SPECTACULAR_SETTINGS = {
