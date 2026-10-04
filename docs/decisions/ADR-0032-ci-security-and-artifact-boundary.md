@@ -2,11 +2,13 @@
 
 ## Status
 
-Accepted
+Superseded
 
 ## Date
 
 2026-10-03
+
+This decision was superseded for the API image vulnerability threshold by [ADR-0033](ADR-0033-temporary-debian-image-risk-acceptance.md). The CI workflow boundary remains in force.
 
 ## Context
 
@@ -54,7 +56,7 @@ Disadvantages:
 
 ## Decision
 
-Use `pull_request`, `push` to `main`, and manual dispatch; never use `pull_request_target` for executing repository code. Set `GITHUB_TOKEN` permissions to `contents: read`. Pin every external action to a verified full commit SHA. Use exact Python/Node/PostgreSQL image versions and backend/frontend lockfiles. Build explicit production image targets after application checks, and scan dependency locks/configuration/images. Block all HIGH and CRITICAL findings, including findings that do not yet have a published fix; triage must happen before merge.
+Use `pull_request`, `push` to `main`, and manual dispatch; never use `pull_request_target` for executing repository code. Set `GITHUB_TOKEN` permissions to `contents: read`. Pin every external action to a verified full commit SHA. Use exact Python/Node/PostgreSQL image versions and backend/frontend lockfiles. Build explicit production image targets after application checks, and scan dependency locks/configuration/images. The original blanket HIGH/CRITICAL block is superseded only by the narrowly scoped temporary exceptions in ADR-0033; all other findings remain blocking.
 
 Keep Trivy JSON output in ephemeral runner storage and summarize only finding identifiers/severity/location. Never print secret match contents in workflow logs.
 
@@ -72,7 +74,7 @@ Do not log in to or push to a container registry and do not deploy. Save API and
 
 - Action SHAs require deliberate dependency updates; provenance review remains necessary.
 - Temporary Actions artifacts expire and must later be promoted to an explicitly selected registry.
-- HIGH/CRITICAL scan threshold may need adjustment based on observed false positives and project risk tolerance.
+- The original strict image-scan threshold required a reviewed exception mechanism for currently unresolved Debian stable findings; see ADR-0033.
 - GitHub repository settings, required status checks, artifact retention policy and hosted run are outside this local implementation.
 
 ### Risks
@@ -83,6 +85,7 @@ Do not log in to or push to a container registry and do not deploy. Save API and
 
 ## Related Decisions
 
+- [ADR-0033: Temporary Debian Image Risk Acceptance](ADR-0033-temporary-debian-image-risk-acceptance.md)
 - [ADR-0020: Quality, Git and Migration Policy](ADR-0020-quality-and-migration-policy.md)
 - [ADR-0021: Operational Baseline and Deferred Infrastructure](ADR-0021-operations-baseline-and-deferrals.md)
 

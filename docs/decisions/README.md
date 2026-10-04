@@ -35,16 +35,17 @@
 | [ADR-0029](ADR-0029-public-account-security-and-email-delivery.md) | Public Account Security and Email Delivery Boundary | Accepted | 2026-10-01 |
 | [ADR-0030](ADR-0030-stripe-sandbox-checkout.md) | Stripe Sandbox Checkout and Manual Capture | Accepted | 2026-10-01 |
 | [ADR-0031](ADR-0031-versioned-remote-database-backups.md) | Versioned Remote Database Backups | Accepted | 2026-10-03 |
-| [ADR-0032](ADR-0032-ci-security-and-artifact-boundary.md) | CI Security and Artifact Boundary | Accepted | 2026-10-03 |
+| [ADR-0032](ADR-0032-ci-security-and-artifact-boundary.md) | CI Security and Artifact Boundary | Superseded | 2026-10-03 |
+| [ADR-0033](ADR-0033-temporary-debian-image-risk-acceptance.md) | Temporary Debian Image Risk Acceptance | Accepted | 2026-10-04 |
 
 ## Policy
 
-Significant architectural decisions require explicit user selection or explicit delegated decision authority before becoming Accepted. ADR-0013 through ADR-0021 were selected by Codex under the user's 2026-09-28 delegation; the earlier records were selected individually by the user. Delegation for this round does not silently authorize future unrelated decisions. Records include alternatives, consequences, reversibility, triggers and provenance.
+Significant architectural decisions require explicit user selection or explicit delegated decision authority before becoming Accepted. ADR-0013 through ADR-0021 were selected by Codex under the user's 2026-09-28 delegation; the earlier records were selected individually by the user. ADR-0033 was selected under the user's 2026-10-04 explicit autonomous-completion delegation. Records include alternatives, consequences, reversibility, triggers and provenance.
 
 Allowed ADR states: Proposed, Accepted, Rejected, Superseded, Deprecated. Deferred topics stay in [project status](../project-status.md) until a meaningful proposal exists.
 
-Update this table in the same change as any ADR creation or status change. A consistency check compares it with ADR contents during documentation verification. Local CI workflow configuration is implemented under ADR-0032; no hosted run or required-check enforcement has been verified yet.
+Update this table in the same change as any ADR creation or status change. A consistency check compares it with ADR contents during documentation verification. Local CI workflow configuration is described by ADR-0032 and ADR-0033; no hosted run or required-check enforcement has been verified yet.
 
-If a decision changes, preserve its history: mark the old ADR Superseded, create a new Accepted ADR after user selection and link both records.
+If a decision changes, preserve its history: mark the old ADR Superseded, create a new Accepted ADR after user selection or explicit delegated authority, and link both records.
 
 Discussion Decisions 001–004 map to ADR-0001–ADR-0004 in this initial round. Product scope is recorded because it constrains the architecture.

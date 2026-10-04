@@ -1,21 +1,21 @@
 # Decision Register and Deferred Gates
 
-Updated: 2026-10-03. Decisions 0013–0021 were made by Codex under explicit user delegation for that round; ADR-0024 was selected under the owner's 2026-10-01 autonomous implementation delegation. ADR-0031 and ADR-0032 were selected under the same active production-readiness implementation delegation. That delegation covers this goal only; material technical choices are recorded in ADRs and still require external resources for live verification. [ADR index](../decisions/README.md).
+Updated: 2026-10-04. Decisions 0013–0021 were made by Codex under explicit user delegation for that round; ADR-0024 and ADR-0031/0032 were selected under the owner's production-readiness implementation delegation. ADR-0033 was selected under the owner's 2026-10-04 explicit autonomous-completion delegation. Material technical choices are recorded in ADRs and still require external resources for live verification. [ADR index](../decisions/README.md).
 
 ## Current Baseline — DECIDED
 
-| Area | Selected direction | Record |
-|---|---|---|
-| Product | Registered checkout, one stock pool, simulated shipping/tax boundary | ADR-0013 |
-| Workflow | Atomic reservation, one payment attempt, pending-only cancellation, expiry | ADR-0014 |
-| Data | UUIDv4, EUR decimals, snapshots, explicit FKs/locks | ADR-0015 |
-| Identity/admin | Django sessions, same origin/CSRF, custom user, restricted Django admin | ADR-0016 |
-| API | JSON REST v1, Problem Details, drf-spectacular, scoped idempotency | ADR-0017 |
-| Frontend | Router/Query, generated OpenAPI types (generator superseded by ADR-0022), temporary cart, shared stylesheet | ADR-0018, ADR-0022 |
-| Tooling/local | Runtime lines, uv/npm, native apps + Compose PostgreSQL | ADR-0019 |
-| Quality | Test pyramid, PostgreSQL concurrency, migration procedure, GitHub Flow policy | ADR-0020 |
-| Operations | Logs/audit, health checks, maintenance; defer distribution | ADR-0021 |
-| Authentication abuse controls | Atomic PostgreSQL fixed-window limits for customer/Admin login and local registration | ADR-0024 |
+| Area                          | Selected direction                                                                                          | Record             |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------ |
+| Product                       | Registered checkout, one stock pool, simulated shipping/tax boundary                                        | ADR-0013           |
+| Workflow                      | Atomic reservation, one payment attempt, pending-only cancellation, expiry                                  | ADR-0014           |
+| Data                          | UUIDv4, EUR decimals, snapshots, explicit FKs/locks                                                         | ADR-0015           |
+| Identity/admin                | Django sessions, same origin/CSRF, custom user, restricted Django admin                                     | ADR-0016           |
+| API                           | JSON REST v1, Problem Details, drf-spectacular, scoped idempotency                                          | ADR-0017           |
+| Frontend                      | Router/Query, generated OpenAPI types (generator superseded by ADR-0022), temporary cart, shared stylesheet | ADR-0018, ADR-0022 |
+| Tooling/local                 | Runtime lines, uv/npm, native apps + Compose PostgreSQL                                                     | ADR-0019           |
+| Quality                       | Test pyramid, PostgreSQL concurrency, migration procedure, GitHub Flow policy                               | ADR-0020           |
+| Operations                    | Logs/audit, health checks, maintenance; defer distribution                                                  | ADR-0021           |
+| Authentication abuse controls | Atomic PostgreSQL fixed-window limits for customer/Admin login and local registration                       | ADR-0024           |
 
 These choices supplement, not supersede, ADR-0001 through ADR-0012. Runtime completion is tracked in [project status](../project-status.md); accepted design alone is not evidence that a capability is implemented.
 
@@ -25,39 +25,40 @@ These choices supplement, not supersede, ADR-0001 through ADR-0012. Runtime comp
 
 ## Implementation-Time Verification — HISTORICAL
 
-| Item | Why not claim complete | Required before |
-|---|---|---|
-| Exact patched versions and locks | Verified for current dependencies at the local-development milestone | Re-evaluate on dependency changes |
-| Type-check/formatter configuration and generated client types | Implemented and exercised locally | Relevant API/UI changes |
-| Concurrency, permissions, schema and migration tests | Implemented for current local application baseline | Extend for public account/payment behavior |
-| Concrete model field lengths and indexes beyond specified invariants | Resolved for current models | Re-evaluate with new production workflows |
-| Local port/image digest/settings details | Local Compose setup is reproducible; no production artifact/deployment yet | Production packaging |
+| Item                                                                 | Why not claim complete                                                     | Required before                            |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------ |
+| Exact patched versions and locks                                     | Verified for current dependencies at the local-development milestone       | Re-evaluate on dependency changes          |
+| Type-check/formatter configuration and generated client types        | Implemented and exercised locally                                          | Relevant API/UI changes                    |
+| Concurrency, permissions, schema and migration tests                 | Implemented for current local application baseline                         | Extend for public account/payment behavior |
+| Concrete model field lengths and indexes beyond specified invariants | Resolved for current models                                                | Re-evaluate with new production workflows  |
+| Local port/image digest/settings details                             | Local Compose setup is reproducible; no production artifact/deployment yet | Production packaging                       |
 
 Routine implementation choices can follow the accepted conventions; substantive changes need recorded authority.
 
 ## Deferred Architectural Decisions
 
-| Area | Status | Trigger / required input |
-|---|---|---|
-| Real payment/refunds, post-payment cancellation | DEFERRED | Explicit scope extension and provider requirements |
-| Tax, invoices, shipping coverage/charges/fulfillment | DEFERRED | Market/jurisdiction and commercial requirements before real sales |
-| Guest checkout, variants, multiple warehouses/currencies/sellers | DEFERRED | Validated scope change |
-| Public SEO strategy / server rendering | DEFERRED | Search acquisition goals; current SPA limitations acknowledged |
-| Production SMTP delivery, mailbox ownership and verified-account policy | ACTIVE | Implement generic SMTP configuration and enforce verified ownership; live deliverability needs a verified sending domain/provider account |
-| Trusted proxy parsing, edge/shared abuse controls, monitoring and staff MFA/access policy | ACTIVE | Implement allow-listed proxy and cross-source controls; volumetric protection/MFA operations need hosted edge/identity controls |
-| Privacy retention/erasure and audit retention | DEFERRED | Before real personal data |
-| Redis/cache | DEFERRED | Measured latency/hot paths or an explicit shared-state requirement |
-| RabbitMQ/Celery/integration events | DEFERRED | Durable external work or measured separation needs |
-| Saga/outbox/inbox for external systems | DEFERRED | Cross-system atomicity/delivery problem; local notification intent is not a generic bus |
-| App images/registry/release tags | DEFERRED | Working tested app and packaging milestone |
-| CI provider/config | DECIDED — GitHub Actions with read-only pull-request checks and SHA-addressed temporary artifacts | ADR-0032 |
-| Hosted workflow run and protected-branch checks | DEFERRED | Workflow is implemented locally; repository integration/owner settings and first hosted run are unavailable in this workspace |
-| Hosted development/staging/production | DEFERRED | Release audience, access and budget known |
-| Cloud, Kubernetes, Helm, GitOps, Terraform | DEFERRED | Deployment/platform need and cost comparison |
-| Production secrets/TLS/DNS/networking/storage | DEFERRED | Hosted topology selected |
-| Metrics/log platform, tracing, alert ownership | DEFERRED | First operated environment and diagnostic needs |
-| SLOs, RPO/RTO, backup retention and restore architecture | ACTIVE | Implement portable hosted backup and restore drill; numeric targets require actual business impact and hosted validation |
-| Load thresholds and scaling/autoscaling | DEFERRED | Representative workload scenarios and measurement |
+| Area                                                                                      | Status                                                                                                                      | Trigger / required input                                                                                                                  |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Real payment/refunds, post-payment cancellation                                           | DEFERRED                                                                                                                    | Explicit scope extension and provider requirements                                                                                        |
+| Tax, invoices, shipping coverage/charges/fulfillment                                      | DEFERRED                                                                                                                    | Market/jurisdiction and commercial requirements before real sales                                                                         |
+| Guest checkout, variants, multiple warehouses/currencies/sellers                          | DEFERRED                                                                                                                    | Validated scope change                                                                                                                    |
+| Public SEO strategy / server rendering                                                    | DEFERRED                                                                                                                    | Search acquisition goals; current SPA limitations acknowledged                                                                            |
+| Production SMTP delivery, mailbox ownership and verified-account policy                   | ACTIVE                                                                                                                      | Implement generic SMTP configuration and enforce verified ownership; live deliverability needs a verified sending domain/provider account |
+| Trusted proxy parsing, edge/shared abuse controls, monitoring and staff MFA/access policy | ACTIVE                                                                                                                      | Implement allow-listed proxy and cross-source controls; volumetric protection/MFA operations need hosted edge/identity controls           |
+| Privacy retention/erasure and audit retention                                             | DEFERRED                                                                                                                    | Before real personal data                                                                                                                 |
+| Redis/cache                                                                               | DEFERRED                                                                                                                    | Measured latency/hot paths or an explicit shared-state requirement                                                                        |
+| RabbitMQ/Celery/integration events                                                        | DEFERRED                                                                                                                    | Durable external work or measured separation needs                                                                                        |
+| Saga/outbox/inbox for external systems                                                    | DEFERRED                                                                                                                    | Cross-system atomicity/delivery problem; local notification intent is not a generic bus                                                   |
+| App images/registry/release tags                                                          | DEFERRED                                                                                                                    | Working tested app and packaging milestone                                                                                                |
+| CI provider/config                                                                        | DECIDED — GitHub Actions with read-only pull-request checks and SHA-addressed temporary artifacts                           | ADR-0032                                                                                                                                  |
+| API image vulnerability policy                                                            | DECIDED — HIGH/CRITICAL blocked by default; exact 30-day Debian 13 OS-package exceptions only for currently reviewed tuples | ADR-0033                                                                                                                                  |
+| Hosted workflow run and protected-branch checks                                           | DEFERRED                                                                                                                    | Workflow is implemented locally; repository integration/owner settings and first hosted run are unavailable in this workspace             |
+| Hosted development/staging/production                                                     | DEFERRED                                                                                                                    | Release audience, access and budget known                                                                                                 |
+| Cloud, Kubernetes, Helm, GitOps, Terraform                                                | DEFERRED                                                                                                                    | Deployment/platform need and cost comparison                                                                                              |
+| Production secrets/TLS/DNS/networking/storage                                             | DEFERRED                                                                                                                    | Hosted topology selected                                                                                                                  |
+| Metrics/log platform, tracing, alert ownership                                            | DEFERRED                                                                                                                    | First operated environment and diagnostic needs                                                                                           |
+| SLOs, RPO/RTO, backup retention and restore architecture                                  | ACTIVE                                                                                                                      | Implement portable hosted backup and restore drill; numeric targets require actual business impact and hosted validation                  |
+| Load thresholds and scaling/autoscaling                                                   | DEFERRED                                                                                                                    | Representative workload scenarios and measurement                                                                                         |
 
 ## Risk and Readiness Boundary
 

@@ -124,6 +124,7 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
+          version: 0.74.0
           scanners: vuln,misconfig,secret
           severity: HIGH,CRITICAL
           format: json
@@ -136,18 +137,23 @@ jobs:
         with:
           scan-type: image
           image-ref: blast-ecom-api:${{ github.sha }}
+          version: 0.74.0
           scanners: vuln
           severity: HIGH,CRITICAL
           format: json
           output: ${{ runner.temp }}/trivy-api-image.json
           exit-code: "0"
       - name: Enforce API image scan policy
-        run: python3 .github/scripts/check_trivy_report.py "$RUNNER_TEMP/trivy-api-image.json"
+        run: >-
+          python3 .github/scripts/check_trivy_report.py
+          --accepted-image-risks .github/security/trivy-accepted-image-risks.json
+          "$RUNNER_TEMP/trivy-api-image.json"
       - name: Scan storefront image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: blast-ecom-frontend:${{ github.sha }}
+          version: 0.74.0
           scanners: vuln
           severity: HIGH,CRITICAL
           format: json
