@@ -1,6 +1,11 @@
 FROM ghcr.io/astral-sh/uv:0.12.19 AS uv
 
-FROM python:3.13.15-slim-bookworm AS builder
+FROM python:3.13.15-slim-trixie AS python-base
+RUN apt-get update \
+    && apt-get upgrade --yes --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM python-base AS builder
 COPY --from=uv /uv /uvx /bin/
 WORKDIR /build
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
@@ -22,7 +27,7 @@ RUN DJANGO_DEBUG=false \
     BLAST_ECOM_PAYMENT_PROVIDER=disabled \
     /opt/venv/bin/python manage.py collectstatic --noinput
 
-FROM python:3.13.15-slim-bookworm AS development
+FROM python-base AS development
 RUN groupadd --system --gid 10001 blast-ecom \
     && useradd --system --uid 10001 --gid blast-ecom --home-dir /nonexistent blast-ecom
 ENV PATH="/opt/venv/bin:$PATH" \
@@ -37,9 +42,11 @@ USER 10001:10001
 EXPOSE 8000
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
-FROM python:3.13.15-slim-bookworm AS production
+FROM python-base AS production
 RUN groupadd --system --gid 10001 blast-ecom \
-    && useradd --system --uid 10001 --gid blast-ecom --home-dir /nonexistent blast-ecom
+    && useradd --system --uid 10001 --gid blast-ecom --home-dir /nonexistent blast-ecom \
+    && /usr/local/bin/python -m pip uninstall --yes --root-user-action=ignore pip \
+    && rm -rf /usr/local/lib/python3.13/ensurepip
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

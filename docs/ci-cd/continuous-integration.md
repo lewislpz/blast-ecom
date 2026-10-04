@@ -12,14 +12,16 @@ Pull-request code is untrusted, including same-repository branches. The workflow
 
 The backend job installs `backend/uv.lock`, uses a disposable PostgreSQL service, and runs Ruff, formatting, mypy, Django system checks, migration drift checks, validated OpenAPI generation plus exact schema diff, and the complete pytest suite. The frontend job uses `npm ci` against `package-lock.json`, runs typecheck/lint/format/tests, an npm audit that blocks HIGH or CRITICAL advisories, and a production build.
 
-After both pass, the image job builds the `production` targets and scans source lockfiles/configuration plus each image with Trivy. All HIGH/CRITICAL findings fail the job, including vulnerabilities without a published fix. Trivy JSON reports stay in runner temporary storage; the policy checker prints only severity, finding ID and location so secret matches are not echoed into logs. No source or image scan is a guarantee of absence of vulnerabilities.
+After both pass, the image job builds the `production` targets and scans source lockfiles/configuration plus each image with Trivy. All HIGH/CRITICAL findings fail the job, including vulnerabilities without a published fix. Trivy JSON reports stay in runner temporary storage; the policy checker prints only severity, finding ID and location so secret matches are not echoed into logs. No source or image scan is a guarantee of absence of vulnerabilities. The Python production image applies current signed Debian security updates at build time and omits `pip`/`ensurepip` from the final runtime; the Nginx production image applies current signed Alpine package updates while retaining its unprivileged runtime user.
+
+Local production-image scans using Trivy 0.74.0 after these updates returned zero HIGH/CRITICAL findings for the storefront. The API scan still reports Debian packages for CVEs that Debian currently marks no-DSA/minor or postponed; those findings remain visible and the strict API image gate remains failing until they are fixed or explicitly triaged through a reviewed policy change. See the active hardening plan's local scan evidence for exact IDs and Debian tracker references. The workflow has not yet run on GitHub.
 
 ## Production image targets
 
-- API: non-root Python image running Gunicorn/WSGI. Django static files are collected at build time and served by WhiteNoise.
-- Storefront: static Vite build served by an unprivileged Nginx image on port 8080. SPA route fallback is enabled. Its `/health/ready/` endpoint checks only the static HTTP container, not API or database readiness.
+- API: non-root Python image running Gunicorn/WSGI. Django static files are collected at build time and served by WhiteNoise. The final image does not include pip or ensurepip.
+- Storefront: static Vite build served by an unprivileged Nginx image on port 8080. Current signed Alpine package updates are applied at build time. SPA route fallback is enabled. Its `/health/ready/` endpoint checks only the static HTTP container, not API or database readiness.
 
-The development Docker targets and Compose stack are unchanged. A hosted deployment still needs deliberate ingress/path routing for same-origin `/api/`, `/admin/`, `/health/` and `/static/` requests, trusted proxy configuration, secrets/TLS, database migrations, probes and rollback. This workflow does not supply that topology.
+The Compose service topology is unchanged; the Python development target shares the refreshed Debian base. A hosted deployment still needs deliberate ingress/path routing for same-origin `/api/`, `/admin/`, `/health/` and `/static/` requests, trusted proxy configuration, secrets/TLS, database migrations, probes and rollback. This workflow does not supply that topology.
 
 ## Artifacts and later promotion
 

@@ -1,6 +1,6 @@
 # Blast Ecom Project Status
 
-Updated: 2026-10-03
+Updated: 2026-10-04
 
 ## Current Phase
 
@@ -8,7 +8,7 @@ Phase 3 — Testing & pre-production hardening. The local commerce slice and Com
 
 ## Current Objective
 
-The local-development milestone is complete and verified. Production image targets and the least-privilege CI workflow are implemented and locally verified; the current objective is to validate them in the connected GitHub repository and configure required checks before treating main-branch artifacts as reviewed. Live email delivery, payment settlement, hosted backup policy/lifecycle and public deployment still require provider accounts, credentials, infrastructure and operational validation not present in this workspace; code can be prepared and sandbox-tested without claiming those external outcomes.
+The local-development milestone is complete and verified. Production image targets and the least-privilege CI workflow are implemented; local image builds and smoke tests pass, but the strict API HIGH/CRITICAL scan remains failing on Debian-tracked findings. The current objective is to resolve that gate and validate the workflow in the connected GitHub repository before treating main-branch artifacts as reviewed. Live email delivery, payment settlement, hosted backup policy/lifecycle and public deployment still require provider accounts, credentials, infrastructure and operational validation not present in this workspace; code can be prepared and sandbox-tested without claiming those external outcomes.
 
 ## Completed
 
@@ -42,7 +42,7 @@ The local-development milestone is complete and verified. Production image targe
 - DEBUG-only local PostgreSQL backup/restore commands now use custom-format archives, owner-only backup file permissions, no-overwrite backup paths outside the application build context and fresh-database-only restore. Command safety tests pass, and an actual custom-format dump/restore round trip against a disposable PostgreSQL 17.11 database preserved catalog, stock and user counts. This does not constitute production backup/DR.
 - Containerized local development includes locked Python/Node dependencies, non-root API/frontend images, loopback-only browser/database ports, persistent PostgreSQL storage, internal service networking and explicit migration/seed operations. Fresh migrations, all service health checks, frontend-to-API catalog access and the Chromium purchase/account/accessibility E2E journey passed. Docker Compose is not a production deployment.
 - Opt-in S3-compatible PostgreSQL backup/restore requires a versioned bucket, requests and verifies SSE-S3, exact object versions, metadata/tags, object bytes and SHA-256 before success; restore targets only a new database distinct from the source. Moto S3 API plus disposable PostgreSQL 17.11 round-trip verification preserved representative product/order/user counts. This does not configure hosted bucket policy, lifecycle enforcement, credentials, scheduling, alerts or recovery objectives.
-- Production API and frontend container targets exist: Gunicorn/WhiteNoise for Django and unprivileged Nginx for static SPA. A read-only GitHub Actions workflow is configured for locked tests, drift checks, scans, image builds and SHA-addressed main-branch artifacts; it has not yet run in GitHub or been made a required branch check.
+- Production API and frontend container targets exist: Gunicorn/WhiteNoise for Django and unprivileged Nginx for static SPA. Python and Nginx image builds apply current signed OS-package updates; the API runtime omits pip/ensurepip. Local builds and runtime smoke tests pass. A local Trivy 0.74.0 scan reports no HIGH/CRITICAL findings in the frontend image, but the API image still has Debian-tracked findings and fails the intentionally strict HIGH/CRITICAL gate. The read-only GitHub Actions workflow has not run in GitHub or been made a required branch check.
 
 The reviewed Group-admin privilege-escalation path is closed in the current implementation: ordinary staff cannot access Group administration, while active staff superusers retain break-glass access. External notification delivery remains unimplemented; local console messages are simulations. Remote backup/restore application code exists, but hosted operation and production recovery remain unverified. Current auth attempt limits are application-level only. API registration, password reset, demo verification, notification processing and local backup commands are DEBUG-only; no real mailbox ownership, public-account or production readiness is claimed. Remote dump staging uses plaintext in private temporary storage, which remains a hosted deployment risk to mitigate.
 
